@@ -1,232 +1,191 @@
 using System;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Gtk;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using WebKit; // Add this for WebView
-using System.Diagnostics;
-using System.Threading;
-
 
 public class MainWindow : Window
 {
-    private Entry usernameEntry;
-    private Entry passwordEntry;
+    private Entry mobileEntry;
+    private Entry otpEntry;
+    private Button requestOtpButton;
+    private Button verifyOtpButton;
     private Label alertLabel;
     private Label statusBar;
     private Spinner spinner;
+    private VBox otpContainer;
 
-    private Image connectionStatusImage;
+    // Store authentication tokens
+    private string accessToken;
+    private string tokenType;
 
-
-    public MainWindow() : base("Guacamole Connections")
-{
-    SetDefaultSize(800, 600);
-    SetPosition(WindowPosition.Center);
-
-    VBox vbox = new VBox(false, 2);
-
-    usernameEntry = new Entry { PlaceholderText = "Username" };
-    passwordEntry = new Entry { PlaceholderText = "Password", Visibility = false };
-    Button loginButton = new Button("Login");
-    alertLabel = new Label { Text = "Alerts will be displayed here", UseMarkup = true };
-    statusBar = new Label("Status: Disconnected");
-    spinner = new Spinner();
-    connectionStatusImage = new Image();
-
-    loginButton.Clicked += LoginButton_Clicked;
-
-    vbox.PackStart(usernameEntry, false, false, 0);
-    vbox.PackStart(passwordEntry, false, false, 0);
-    vbox.PackStart(loginButton, false, false, 0);
-    vbox.PackStart(alertLabel, false, false, 0);
-
-    HBox statusBox = new HBox(false, 2);
-    statusBox.PackStart(connectionStatusImage, false, false, 0);
-    statusBox.PackStart(statusBar, true, true, 0);
-    statusBox.PackStart(spinner, false, false, 0);
-
-    vbox.PackStart(statusBox, false, false, 0);
-
-    Add(vbox);
-    ShowAll();
-}
-
-
-    private async void LoginButton_Clicked(object sender, EventArgs e)
+    public MainWindow() : base("OTP Authentication")
     {
-        string guacamoleUrl = "https://ir2.vdi.haiocloud.com/api/tokens";
-        string username = usernameEntry.Text;
-        string password = passwordEntry.Text;
-        int maxRetries = 3;
-        int retryCount = 0;
-        bool success = false;
+        SetDefaultSize(400, 300);
+        SetPosition(WindowPosition.Center);
 
-        statusBar.Text = "Status: Connecting...";
+        VBox vbox = new VBox(false, 2);
+
+        // Create mobile number input
+        mobileEntry = new Entry { PlaceholderText = "Mobile Number" };
+        requestOtpButton = new Button("Request OTP");
+        
+        // Create OTP input (initially hidden)
+        otpContainer = new VBox(false, 2);
+        otpEntry = new Entry { PlaceholderText = "Enter OTP", MaxLength = 4 };
+        verifyOtpButton = new Button("Verify OTP");
+        otpContainer.PackStart(otpEntry, false, false, 0);
+        otpContainer.PackStart(verifyOtpButton, false, false, 0);
+        otpContainer.Hide();
+
+        alertLabel = new Label { Text = "Enter your mobile number", UseMarkup = true };
+        statusBar = new Label("Status: Ready");
+        spinner = new Spinner();
+
+        requestOtpButton.Clicked += RequestOtpButton_Clicked;
+        verifyOtpButton.Clicked += VerifyOtpButton_Clicked;
+
+        // Pack everything
+        vbox.PackStart(mobileEntry, false, false, 0);
+        vbox.PackStart(requestOtpButton, false, false, 0);
+        vbox.PackStart(otpContainer, false, false, 0);
+        vbox.PackStart(alertLabel, false, false, 0);
+
+        HBox statusBox = new HBox(false, 2);
+        statusBox.PackStart(statusBar, true, true, 0);
+        statusBox.PackStart(spinner, false, false, 0);
+
+        vbox.PackStart(statusBox, false, false, 0);
+
+        Add(vbox);
+        ShowAll();
+    }
+
+    private async void RequestOtpButton_Clicked(object sender, EventArgs e)
+    {
+        string mobile = mobileEntry.Text.Trim();
+        if (string.IsNullOrEmpty(mobile))
+        {
+            alertLabel.Markup = "<span foreground='red'>Please enter a mobile number</span>";
+            return;
+        }
+
+        statusBar.Text = "Status: Requesting OTP...";
         spinner.Start();
         spinner.Show();
 
-        while (retryCount < maxRetries && !success)
+        try
         {
-            try
+            using (HttpClient client = new HttpClient())
             {
-                using (HttpClient client = new HttpClient())
+                var content = new FormUrlEncodedContent(new[]
                 {
-                    var content = new FormUrlEncodedContent(new[]
-                    {
-                        new KeyValuePair<string, string>("username", username),
-                        new KeyValuePair<string, string>("password", password)
-                    });
+                    new KeyValuePair<string, string>("mobile", mobile)
+                });
 
-                    HttpResponseMessage response = await client.PostAsync(guacamoleUrl, content);
-                    string responseString = await response.Content.ReadAsStringAsync();
+                HttpResponseMessage response = await client.PostAsync("https://api.haio.ir/v1/user/otp/login", content);
+                string responseString = await response.Content.ReadAsStringAsync();
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        JObject json = JObject.Parse(responseString);
-                        string authToken = json["authToken"].ToString();
+                if (response.IsSuccessStatusCode)
+                {
+                    alertLabel.Markup = "<span foreground='green'>OTP sent successfully. Please check your phone.</span>";
+                    otpContainer.Show();
+                    requestOtpButton.Sensitive = false;
+                    mobileEntry.Sensitive = false;
+                }
+                else
+                {
+                    alertLabel.Markup = $"<span foreground='red'>Error: {response.ReasonPhrase}</span>";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            alertLabel.Markup = $"<span foreground='red'>Error: {ex.Message}</span>";
+        }
+        finally
+        {
+            spinner.Stop();
+            spinner.Hide();
+            statusBar.Text = "Status: Waiting for OTP";
+        }
+    }
 
-                        string connectionUrl = $"https://ir2.vdi.haiocloud.com/#/?token={authToken}";
-                        OpenConnectionWindow("Guacamole Connection", connectionUrl);
-                        success = true;
-                    }
-                    else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+    private async void VerifyOtpButton_Clicked(object sender, EventArgs e)
+    {
+        string mobile = mobileEntry.Text.Trim();
+        string otp = otpEntry.Text.Trim();
+
+        if (string.IsNullOrEmpty(otp) || otp.Length != 4)
+        {
+            alertLabel.Markup = "<span foreground='red'>Please enter a valid 4-digit OTP</span>";
+            return;
+        }
+
+        statusBar.Text = "Status: Verifying OTP...";
+        spinner.Start();
+        spinner.Show();
+
+        try
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                var content = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("mobile", mobile),
+                    new KeyValuePair<string, string>("otp_code", otp)
+                });
+
+                HttpResponseMessage response = await client.PostAsync("https://api.haio.ir/v1/user/otp/login/verify", content);
+                string responseString = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    JObject json = JObject.Parse(responseString);
+                    
+                    if (json["status"]?.Value<bool>() == true)
                     {
-                        statusBar.Text = "Status: Disconnected";
-                        spinner.Stop();
-                        spinner.Hide();
-                        alertLabel.Markup = "<span foreground='red'>Error: Authentication failed.</span>";
-                        break;
+                        // Store the tokens
+                        accessToken = json["params"]?["data"]?["access_token"]?.ToString();
+                        tokenType = json["params"]?["data"]?["token_type"]?.ToString();
+
+                        if (!string.IsNullOrEmpty(accessToken))
+                        {
+                            alertLabel.Markup = "<span foreground='green'>Authentication successful!</span>";
+                            statusBar.Text = "Status: Authenticated";
+                        }
+                        else
+                        {
+                            alertLabel.Markup = "<span foreground='red'>Invalid response format from server.</span>";
+                        }
                     }
                     else
                     {
-                        statusBar.Text = "Status: Error";
-                        spinner.Stop();
-                        spinner.Hide();
-                        alertLabel.Markup = $"<span foreground='red'>Error: {response.ReasonPhrase}</span>";
+                        alertLabel.Markup = $"<span foreground='red'>Error: {json["message"]}</span>";
                     }
                 }
-            }
-            catch (HttpRequestException httpEx)
-            {
-                statusBar.Text = "Status: Network Error";
-                spinner.Stop();
-                spinner.Hide();
-                alertLabel.Markup = $"<span foreground='red'>Network Error: {httpEx.Message}</span>";
-            }
-            catch (Exception ex)
-            {
-                statusBar.Text = "Status: Error";
-                spinner.Stop();
-                spinner.Hide();
-                alertLabel.Markup = $"<span foreground='red'>Error: {ex.Message}</span>";
-            }
-
-            if (!success)
-            {
-                retryCount++;
-                if (retryCount < maxRetries)
+                else
                 {
-                    await Task.Delay(2000); // Wait for 2 seconds before retrying
+                    alertLabel.Markup = "<span foreground='red'>Invalid OTP. Please try again.</span>";
+                    otpEntry.Text = "";
                 }
             }
         }
-
-        if (!success)
+        catch (Exception ex)
         {
-            alertLabel.Markup = "<span foreground='red'>Error: Could not establish connection. Please try again.</span>";
+            alertLabel.Markup = $"<span foreground='red'>Error: {ex.Message}</span>";
         }
-    }
-    
-   private void EnableCopyPaste(WebView webView)
-    {
-        webView.KeyPressEvent += (o, args) =>
+        finally
         {
-            if ((args.Event.State & Gdk.ModifierType.ControlMask) != 0)
-            {
-                switch (args.Event.Key)
-                {
-                    case Gdk.Key.c:
-                        webView.ExecuteEditingCommand("Copy");
-                        break;
-                    case Gdk.Key.v:
-                        webView.ExecuteEditingCommand("Paste");
-                        break;
-                    case Gdk.Key.x:
-                        webView.ExecuteEditingCommand("Cut");
-                        break;
-                }
-            }
-        };
-    }
-    private void OpenConnectionWindow(string connectionName, string url)
-{
-    Window connectionWindow = new Window(connectionName);
-    connectionWindow.SetDefaultSize(800, 600);
-    connectionWindow.SetPosition(WindowPosition.Center);
-    connectionWindow.Resizable = true; // Allow the window to be resizable
-
-    VBox vbox = new VBox(false, 2);
-
-    WebView webView = new WebView();
-    statusBar = new Label("Status: Loading...");
-    spinner = new Spinner();
-    spinner.Start();
-
-
-    // Set up the WebView
-    webView.LoadChanged += (sender, args) =>
-    {
-        if (webView.IsLoading)
-        {
-            statusBar.Text = "Status: Loading...";
-            spinner.Start();
-            spinner.Show();
-        }
-        else
-        {
-            statusBar.Text = "Status: Connected";
             spinner.Stop();
             spinner.Hide();
-
-            // Inject JavaScript to handle window resize and reload the page
-            string script = @"
-                window.onresize = function() {
-                    clearTimeout(window.reloadTimeout);
-                    window.reloadTimeout = setTimeout(function() {
-                        location.reload();
-                    }, 500);
-                };
-            ";
-            webView.RunJavascript(script);
         }
-    };
+    }
 
-    // Load the URL
-    webView.LoadUri(url);
-
-    // Enable copy-paste
-    EnableCopyPaste(webView);
-    
-    // Add the WebView and status bar to the window
-    HBox hbox = new HBox(false, 2);
-    hbox.PackStart(statusBar, true, true, 0);
-    hbox.PackStart(spinner, false, false, 0);
-
-    vbox.PackStart(webView, true, true, 0); // Ensure the WebView expands
-    vbox.PackStart(hbox, false, false, 0); // Add the status bar at the bottom
-
-    connectionWindow.Add(vbox);
-    connectionWindow.ShowAll();
-
-    // Close the main window
-    this.Destroy();
-}
-
-
-
-
-
+    // Method to get the stored tokens
+    public (string AccessToken, string TokenType) GetStoredTokens()
+    {
+        return (accessToken, tokenType);
+    }
 }
