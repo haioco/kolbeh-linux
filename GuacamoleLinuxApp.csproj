@@ -6,36 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="**\*.glade" />
-    <EmbeddedResource Include="**\*.glade">
-      <LogicalName>%(Filename)%(Extension)</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Another.Unofficial.Xilium.CefGlue" Version="0.4.0" />
     <PackageReference Include="GtkSharp" Version="3.24.24.38" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="WebKitGTKSharp" Version="2.24.4.1" />
-    
-  <Reference Include="libcef">
-    <HintPath>path/to/libcef.so</HintPath>
-  </Reference>
-  <Reference Include="libEGL">
-    <HintPath>path/to/libEGL.so</HintPath>
-  </Reference>
-  <Reference Include="libGLESv2">
-    <HintPath>path/to/libGLESv2.so</HintPath>
-  </Reference>
-
-
   </ItemGroup>
+
   <PropertyGroup>
     <RuntimeIdentifiers>linux-x64;linux-arm;linux-arm64</RuntimeIdentifiers>
-</PropertyGroup>
-
+  </PropertyGroup>
 
 </Project>
 
