@@ -50,6 +50,21 @@ public class MainWindow : Window
                 font-weight: bold;
                 margin-bottom: 20px;
             }
+            .status-running {
+                color: #2ecc71;
+                font-weight: bold;
+            }
+            .status-stopped {
+                color: #e74c3c;
+                font-weight: bold;
+            }
+            .no-vms-message {
+                color: #7f8c8d;
+                font-style: italic;
+            }
+            .error-message {
+                color: #c0392b;
+            }
         ");
         StyleContext.AddProviderForScreen(Screen, cssProvider, 800);
     }
@@ -134,6 +149,7 @@ public class MainWindow : Window
                     if (json["status"]?.Value<bool>() == true)
                     {
                         accessToken = json["params"]?["data"]?["access_token"]?.ToString();
+                        Console.Out.WriteLine($"ACCESS TOKEN RECEIVED: {accessToken}");
                         tokenType = json["params"]?["data"]?["token_type"]?.ToString();
                         
                         if (!string.IsNullOrEmpty(accessToken))
@@ -161,7 +177,9 @@ public class MainWindow : Window
 
     public void NavigateToDashboard()
     {
+        Console.Out.WriteLine("Navigating to Dashboard...");
         pageStack.VisibleChildName = "dashboard";
+        dashboardPage.Show();
     }
 
     public (string AccessToken, string TokenType) GetStoredTokens()

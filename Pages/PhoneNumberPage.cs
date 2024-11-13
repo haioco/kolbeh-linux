@@ -10,6 +10,7 @@ public class PhoneNumberPage : BasePage
 
     public PhoneNumberPage(MainWindow mainWindow) : base(mainWindow)
     {
+        Console.Out.WriteLine($"PHONE NUMBER PAGE INITIALIZED");
         // Create centered container
         var centerBox = new VBox(false, 10);
         centerBox.Halign = Align.Center;

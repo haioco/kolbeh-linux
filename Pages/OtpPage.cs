@@ -20,6 +20,7 @@ public class OtpPage : BasePage
 
     public OtpPage(MainWindow mainWindow) : base(mainWindow)
     {
+        Console.Out.WriteLine($"OTP PAGE INITIALIZED:\nPhone_number:{phoneNumber}");
         // Create centered container
         var centerBox = new VBox(false, 10);
         centerBox.Halign = Align.Center;
@@ -165,6 +166,7 @@ public class OtpPage : BasePage
     private async void VerifyButton_Clicked(object sender, EventArgs e)
     {
         string otp = otpEntry.Text.Trim();
+        Console.Out.WriteLine($"VERIFICATION PROCESS INITIALIZED:\nPhone_number:{phoneNumber}\nOTP:{otp}");
         if (string.IsNullOrEmpty(otp) || otp.Length != 4)
         {
             statusLabel.Markup = "<span foreground='red'>Please enter a valid 4-digit OTP</span>";
@@ -179,16 +181,26 @@ public class OtpPage : BasePage
         try
         {
             bool success = await MainWindow.VerifyOtp(phoneNumber, otp);
+            Console.Out.WriteLine($"VERIFICATION RESULT:\nPhone_number:{phoneNumber}\nOTP:{otp}\nverified:{success}");
             if (success)
             {
+                Console.Out.WriteLine("Verification successful, navigating to dashboard...");
                 StopCooldownTimer();
-                MainWindow.NavigateToDashboard();
+                // Force UI update to happen on the main thread
+                Application.Invoke((sender, args) => {
+                    MainWindow.NavigateToDashboard();
+                });
             }
             else
             {
                 statusLabel.Markup = "<span foreground='red'>Invalid OTP. Please try again.</span>";
                 otpEntry.Text = "";
             }
+        }
+        catch (Exception ex)
+        {
+            Console.Out.WriteLine($"Error during verification: {ex}");
+            statusLabel.Markup = "<span foreground='red'>An error occurred during verification.</span>";
         }
         finally
         {
