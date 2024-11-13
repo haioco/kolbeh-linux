@@ -19,6 +19,6 @@ public abstract class BasePage : VBox
         Spacing = 10;
     }
 
-    public abstract void Show();
-    public abstract void Hide();
+    public new abstract void Show();
+    public new abstract void Hide();
 } 

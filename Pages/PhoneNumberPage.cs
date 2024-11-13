@@ -51,6 +51,15 @@ public class PhoneNumberPage : BasePage
             return;
         }
 
+        var (canRequest, remainingTime) = MainWindow.CheckPhoneCooldown(phone);
+        if (!canRequest)
+        {
+            int minutes = (int)remainingTime.TotalMinutes;
+            int seconds = (int)remainingTime.TotalSeconds % 60;
+            statusLabel.Markup = $"<span foreground='red'>Please wait {minutes:D2}:{seconds:D2} before requesting another OTP</span>";
+            return;
+        }
+
         spinner.Start();
         continueButton.Sensitive = false;
         phoneEntry.Sensitive = false;
@@ -79,11 +88,6 @@ public class PhoneNumberPage : BasePage
     public void SetPhoneNumber(string phone)
     {
         phoneEntry.Text = phone;
-    }
-
-    public string GetPhoneNumber()
-    {
-        return phoneEntry.Text.Trim();
     }
 
     public override void Show()

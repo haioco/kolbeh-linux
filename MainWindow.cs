@@ -16,6 +16,10 @@ public class MainWindow : Window
     private string accessToken;
     private string tokenType;
 
+    // Phone number cooldown tracking
+    private Dictionary<string, DateTime> phoneCooldowns = new Dictionary<string, DateTime>();
+    private const int COOLDOWN_SECONDS = 600; // 10 minutes
+
     public MainWindow() : base("OTP Authentication")
     {
         SetDefaultSize(400, 500);
@@ -50,8 +54,39 @@ public class MainWindow : Window
         StyleContext.AddProviderForScreen(Screen, cssProvider, 800);
     }
 
+    public (bool CanRequest, TimeSpan RemainingTime) CheckPhoneCooldown(string phone)
+    {
+        if (!phoneCooldowns.ContainsKey(phone))
+        {
+            return (true, TimeSpan.Zero);
+        }
+
+        var cooldownEnd = phoneCooldowns[phone].AddSeconds(COOLDOWN_SECONDS);
+        var remainingTime = cooldownEnd - DateTime.Now;
+
+        if (remainingTime <= TimeSpan.Zero)
+        {
+            phoneCooldowns.Remove(phone);
+            return (true, TimeSpan.Zero);
+        }
+
+        return (false, remainingTime);
+    }
+
+    private void StartPhoneCooldown(string phone)
+    {
+        phoneCooldowns[phone] = DateTime.Now;
+    }
+
     public async Task<bool> RequestOtp(string phone)
     {
+        var (canRequest, remainingTime) = CheckPhoneCooldown(phone);
+        
+        if (!canRequest)
+        {
+            return false;
+        }
+
         try
         {
             using (HttpClient client = new HttpClient())
@@ -62,7 +97,13 @@ public class MainWindow : Window
                 });
 
                 HttpResponseMessage response = await client.PostAsync("https://api.haio.ir/v1/user/otp/login", content);
-                return response.IsSuccessStatusCode;
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    StartPhoneCooldown(phone);
+                    return true;
+                }
+                return false;
             }
         }
         catch
@@ -94,7 +135,13 @@ public class MainWindow : Window
                     {
                         accessToken = json["params"]?["data"]?["access_token"]?.ToString();
                         tokenType = json["params"]?["data"]?["token_type"]?.ToString();
-                        return !string.IsNullOrEmpty(accessToken);
+                        
+                        if (!string.IsNullOrEmpty(accessToken))
+                        {
+                            // Clear cooldown on successful verification
+                            phoneCooldowns.Remove(phone);
+                            return true;
+                        }
                     }
                 }
                 return false;
