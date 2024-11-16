@@ -86,13 +86,79 @@ public class DashboardPage : BasePage
         );
         detailsLabel.Halign = Align.Start;
 
+        // Add Connect button
+        var connectButton = new Button("Connect");
+        connectButton.Clicked += async (sender, e) => {
+            await ConnectToVM(vmData["id"].ToString());
+        };
+        
+        // Button container for alignment
+        var buttonBox = new HBox(false, 0);
+        buttonBox.PackEnd(connectButton, false, false, 0);
+
         box.PackStart(titleBox, false, false, 0);
         box.PackStart(specsLabel, false, false, 0);
         box.PackStart(detailsLabel, false, false, 0);
+        box.PackStart(buttonBox, false, false, 5);  // Add some padding
 
         frame.Add(box);
         frame.ShowAll();
         return frame;
+    }
+
+    private async Task ConnectToVM(string vmId)
+    {
+        try
+        {
+            var (accessToken, refreshToken) = MainWindow.GetStoredTokens();
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+                var response = await client.GetAsync($"https://api.haio.ir/v1/cloud/desktop/{vmId}/login");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var json = JObject.Parse(content);
+                    
+                    if (json["status"]?.Value<bool>() == true)
+                    {
+                        var vdiUrl = json["params"]?["vdi_url"]?.ToString();
+                        if (!string.IsNullOrEmpty(vdiUrl))
+                        {
+                            // Create a new window for the VDI connection
+                            var vdiWindow = new Window("VM Connection");
+                            vdiWindow.SetDefaultSize(1024, 768);
+                            vdiWindow.SetPosition(WindowPosition.Center);
+
+                            // Create WebKit WebView
+                            var webView = new WebKit.WebView();
+                            webView.LoadUri(vdiUrl);
+                            
+                            vdiWindow.Add(webView);
+                            vdiWindow.ShowAll();
+
+                            // Handle window close
+                            vdiWindow.DeleteEvent += (sender, e) => {
+                                vdiWindow.Destroy();
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorDialog = new MessageDialog(
+                MainWindow,
+                DialogFlags.Modal,
+                MessageType.Error,
+                ButtonsType.Ok,
+                $"Failed to connect to VM: {ex.Message}"
+            );
+            errorDialog.Run();
+            errorDialog.Destroy();
+        }
     }
 
     private async Task FetchVirtualMachines()
