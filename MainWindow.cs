@@ -14,7 +14,9 @@ public class MainWindow : Window
 
     // Store authentication tokens
     private string accessToken;
-    private string tokenType;
+    private string refreshToken;
+    // public static bool DEBUG = false; // Debug flag
+    public static bool DEBUG = true; // Debug flag
 
     // Phone number cooldown tracking
     private Dictionary<string, DateTime> phoneCooldowns = new Dictionary<string, DateTime>();
@@ -64,6 +66,11 @@ public class MainWindow : Window
             }
             .error-message {
                 color: #c0392b;
+            }
+            .debug-button {
+                background: #e74c3c;
+                color: white;
+                padding: 5px 10px;
             }
         ");
         StyleContext.AddProviderForScreen(Screen, cssProvider, 800);
@@ -150,7 +157,7 @@ public class MainWindow : Window
                     {
                         accessToken = json["params"]?["data"]?["access_token"]?.ToString();
                         Console.Out.WriteLine($"ACCESS TOKEN RECEIVED: {accessToken}");
-                        tokenType = json["params"]?["data"]?["token_type"]?.ToString();
+                        refreshToken = json["params"]?["data"]?["refresh_token"]?.ToString();
                         
                         if (!string.IsNullOrEmpty(accessToken))
                         {
@@ -178,18 +185,52 @@ public class MainWindow : Window
     public void NavigateToDashboard()
     {
         Console.Out.WriteLine("Navigating to Dashboard...");
+        // Create new DashboardPage if it doesn't exist
+        if (dashboardPage == null)
+        {
+            Console.Out.WriteLine("Creating new DashboardPage instance");
+            dashboardPage = new DashboardPage(this);
+            pageStack.AddNamed(dashboardPage, "dashboard");
+        }
         pageStack.VisibleChildName = "dashboard";
         dashboardPage.Show();
     }
 
     public (string AccessToken, string TokenType) GetStoredTokens()
     {
-        return (accessToken, tokenType);
+        return (accessToken, refreshToken);
     }
 
     public void NavigateBackToPhone(string phone)
     {
         phoneNumberPage.SetPhoneNumber(phone);
         pageStack.VisibleChildName = "phone";
+    }
+
+    public void Logout()
+    {
+        // Clear tokens
+        accessToken = null;
+        refreshToken = null;
+        
+        // Reset pages
+        pageStack.VisibleChildName = "phone";
+        
+        // Clear any sensitive data
+        phoneNumberPage.SetPhoneNumber("");
+        
+        // Clean up dashboard
+        if (dashboardPage != null)
+        {
+            pageStack.Remove(dashboardPage);
+            dashboardPage.Destroy();
+            dashboardPage = null;  // Important to set to null after destroying
+        }
+    }
+
+    public void SetDebugTokens(string token)
+    {
+        accessToken = token;
+        refreshToken = "debug_refresh_token";
     }
 }

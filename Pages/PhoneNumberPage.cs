@@ -7,6 +7,7 @@ public class PhoneNumberPage : BasePage
     private Button continueButton;
     private Label statusLabel;
     private Spinner spinner;
+    private Button debugButton;
 
     public PhoneNumberPage(MainWindow mainWindow) : base(mainWindow)
     {
@@ -30,6 +31,15 @@ public class PhoneNumberPage : BasePage
         continueButton = new Button("Continue");
         continueButton.Clicked += ContinueButton_Clicked;
         centerBox.PackStart(continueButton, false, false, 0);
+
+        // Debug button (only if DEBUG is true)
+        if (MainWindow.DEBUG)
+        {
+            debugButton = new Button("Debug Login");
+            debugButton.StyleContext.AddClass("debug-button");
+            debugButton.Clicked += DebugButton_Clicked;
+            centerBox.PackStart(debugButton, false, false, 0);
+        }
 
         // Status label
         statusLabel = new Label("");
@@ -84,6 +94,41 @@ public class PhoneNumberPage : BasePage
             continueButton.Sensitive = true;
             phoneEntry.Sensitive = true;
         }
+    }
+
+    private void DebugButton_Clicked(object sender, EventArgs e)
+    {
+        var dialog = new Dialog(
+            "Debug Login",
+            MainWindow,
+            DialogFlags.Modal | DialogFlags.DestroyWithParent,
+            "Cancel", ResponseType.Cancel,
+            "Login", ResponseType.Accept
+        );
+
+        // Create entry for access token
+        var contentBox = dialog.ContentArea;
+        contentBox.MarginStart = contentBox.MarginEnd = contentBox.MarginTop = contentBox.MarginBottom = 10;
+        contentBox.Spacing = 10;
+
+        var label = new Label("Enter Access Token:");
+        contentBox.Add(label);
+
+        var tokenEntry = new Entry();
+        tokenEntry.WidthRequest = 300;
+        tokenEntry.Text = ""; // Default empty
+        contentBox.Add(tokenEntry);
+
+        dialog.ShowAll();
+
+        dialog.Response += (o, args) => {
+            if (args.ResponseId == ResponseType.Accept && !string.IsNullOrEmpty(tokenEntry.Text))
+            {
+                MainWindow.SetDebugTokens(tokenEntry.Text);
+                MainWindow.NavigateToDashboard();
+            }
+            dialog.Destroy();
+        };
     }
 
     public void SetPhoneNumber(string phone)

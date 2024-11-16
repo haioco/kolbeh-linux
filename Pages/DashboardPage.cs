@@ -17,12 +17,26 @@ public class DashboardPage : BasePage
     public DashboardPage(MainWindow mainWindow) : base(mainWindow)
     {
         Console.Out.WriteLine($"DASHBOARD INITIALIZED");
+        
+        // Create main container
+        contentBox = new VBox(false, 0);
+        
+        // Add navbar
+        var navbar = CreateNavBar();
+        contentBox.PackStart(navbar, false, false, 0);
+        
+        // Add separator
+        contentBox.PackStart(new HSeparator(), false, false, 0);
+        
+        // Create content area
+        var contentArea = new VBox(false, 10);
+        contentArea.MarginStart = contentArea.MarginEnd = contentArea.MarginTop = contentArea.MarginBottom = 20;
+        
         welcomeLabel = new Label("Your Virtual Machines");
         welcomeLabel.StyleContext.AddClass("title");
         
         spinner = new Spinner();
         
-        // Create VBox for VM list
         vmListBox = new VBox(false, 10);
         
         scrolledWindow = new ScrolledWindow();
@@ -30,12 +44,11 @@ public class DashboardPage : BasePage
         scrolledWindow.WidthRequest = 600;
         scrolledWindow.Add(vmListBox);
         
-        contentBox = new VBox(false, 10);
-        contentBox.Halign = Align.Fill;
-        contentBox.Valign = Align.Start;
-        contentBox.PackStart(welcomeLabel, false, false, 0);
-        contentBox.PackStart(spinner, false, false, 0);
-        contentBox.PackStart(scrolledWindow, true, true, 0);
+        contentArea.PackStart(welcomeLabel, false, false, 0);
+        contentArea.PackStart(spinner, false, false, 0);
+        contentArea.PackStart(scrolledWindow, true, true, 0);
+        
+        contentBox.PackStart(contentArea, true, true, 0);
 
         PackStart(contentBox, true, true, 0);
     }
@@ -118,10 +131,6 @@ public class DashboardPage : BasePage
                         }
                     }
                 }
-                else
-                {
-                    ShowErrorMessage($"Failed to fetch VMs. Status code: {response.StatusCode}");
-                }
             }
         }
         catch (Exception ex)
@@ -165,11 +174,14 @@ public class DashboardPage : BasePage
         
         // Execute immediately on the UI thread
         Application.Invoke(async (sender, args) => {
-            Console.Out.WriteLine("Starting to fetch VMs...");
+            Console.Out.WriteLine("Starting to fetch data...");
             try {
-                await FetchVirtualMachines();
+                await Task.WhenAll(
+                    FetchVirtualMachines(),
+                    UpdateUserInfo()
+                );
             } catch (Exception ex) {
-                Console.Out.WriteLine($"Error in FetchVirtualMachines: {ex}");
+                Console.Out.WriteLine($"Error fetching data: {ex}");
             }
         });
     }
@@ -177,5 +189,109 @@ public class DashboardPage : BasePage
     public override void Hide()
     {
         this.Visible = false;
+    }
+
+    private HBox CreateNavBar()
+    {
+        var navbar = new HBox(false, 10);
+        navbar.MarginStart = navbar.MarginEnd = navbar.MarginTop = navbar.MarginBottom = 10;
+        
+        // User Info Card (Left)
+        var userInfoCard = new EventBox();
+        var userInfoBox = new VBox(false, 5);
+        userInfoBox.MarginStart = userInfoBox.MarginEnd = userInfoBox.MarginTop = userInfoBox.MarginBottom = 10;
+        userInfoCard.ModifyBg(StateType.Normal, new Gdk.Color(0, 146, 225)); // #0092E1
+        
+        var nameLabel = new Label("Loading...");
+        nameLabel.ModifyFg(StateType.Normal, new Gdk.Color(255, 255, 255));
+        userInfoBox.PackStart(nameLabel, false, false, 0);
+        userInfoCard.Add(userInfoBox);
+        
+        // Balance Info (Middle)
+        var balanceBox = new VBox(false, 5);
+        balanceBox.Halign = Align.Center;
+        var balanceLabel = new Label("Balance: Loading...");
+        var pointBalanceLabel = new Label("Points: Loading...");
+        balanceBox.PackStart(balanceLabel, false, false, 0);
+        balanceBox.PackStart(pointBalanceLabel, false, false, 0);
+        
+        // Logout Button (Right)
+        var logoutButton = new Button("Logout");
+        logoutButton.Clicked += LogoutButton_Clicked;
+        
+        navbar.PackStart(userInfoCard, false, false, 0);
+        navbar.PackStart(balanceBox, true, true, 0);
+        navbar.PackEnd(logoutButton, false, false, 0);
+
+        // Store references to update later
+        this.nameLabel = nameLabel;
+        this.balanceLabel = balanceLabel;
+        this.pointBalanceLabel = pointBalanceLabel;
+
+        return navbar;
+    }
+
+    private Label nameLabel;
+    private Label balanceLabel;
+    private Label pointBalanceLabel;
+
+    private async Task UpdateUserInfo()
+    {
+        try
+        {
+            Console.Out.WriteLine($"FETCHING USER INFO");
+            var (accessToken, refreshToken) = MainWindow.GetStoredTokens();
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+                var response = await client.GetAsync("https://api.haio.ir/v1/user/info");
+                Console.Out.WriteLine($"USER INFO RESPONSE: {response.StatusCode}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var json = JObject.Parse(content);
+                    
+                    if (json["status"]?.Value<bool>() == true)
+                    {
+                        var userInfo = json["params"] as JObject;
+                        Application.Invoke((sender, args) => {
+                            nameLabel.Text = $"{userInfo["first_name"]} {userInfo["last_name"]}";
+                            balanceLabel.Text = $"Balance: {userInfo["balance"]}";
+                            pointBalanceLabel.Text = $"Points: {userInfo["point_balance"]}";
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching user info: {ex}");
+        }
+    }
+
+    private void LogoutButton_Clicked(object sender, EventArgs e)
+    {
+        var dialog = new MessageDialog(
+            MainWindow,
+            DialogFlags.Modal | DialogFlags.DestroyWithParent,
+            MessageType.Question,
+            ButtonsType.None,
+            "Are you sure you want to logout?"
+        );
+        
+        dialog.Title = "Logout?";
+        dialog.AddButton("Cancel", ResponseType.Cancel);
+        dialog.AddButton("Yes", ResponseType.Yes);
+
+        dialog.Response += (o, args) => {
+            dialog.Destroy();
+            if (args.ResponseId == ResponseType.Yes)
+            {
+                MainWindow.Logout();
+            }
+        };
+
+        dialog.Show();
     }
 } 
