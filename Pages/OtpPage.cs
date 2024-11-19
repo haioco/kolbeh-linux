@@ -22,7 +22,8 @@ public class OtpPage : BasePage
     {
         Console.Out.WriteLine($"OTP PAGE INITIALIZED:\nPhone_number:{phoneNumber}");
         // Create centered container
-        var centerBox = new VBox(false, 10);
+        var centerBox = new Box(Orientation.Vertical, 10);
+        centerBox.Homogeneous = false;
         centerBox.Halign = Align.Center;
         centerBox.Valign = Align.Center;
 
@@ -42,7 +43,8 @@ public class OtpPage : BasePage
         centerBox.PackStart(otpEntry, false, false, 0);
 
         // Buttons container
-        var buttonBox = new HBox(true, 10);
+        var buttonBox = new Box(Orientation.Horizontal, 10);
+        buttonBox.Homogeneous = true;
         buttonBox.Halign = Align.Center;
 
         // Back button

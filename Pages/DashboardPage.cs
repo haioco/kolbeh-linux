@@ -5,31 +5,37 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using WebKit;
+using System.IO;
 
 public class DashboardPage : BasePage
 {
     private Label welcomeLabel;
     private Spinner spinner;
-    private VBox contentBox;
+    private Box contentBox;
     private ScrolledWindow scrolledWindow;
-    private VBox vmListBox;  // Container for VM items
+    private Box vmListBox;  // Container for VM items
+    private Separator separator;
 
     public DashboardPage(MainWindow mainWindow) : base(mainWindow)
     {
         Console.Out.WriteLine($"DASHBOARD INITIALIZED");
         
         // Create main container
-        contentBox = new VBox(false, 0);
+        contentBox = new Box(Orientation.Vertical, 10);
+        contentBox.Homogeneous = false;
         
         // Add navbar
         var navbar = CreateNavBar();
         contentBox.PackStart(navbar, false, false, 0);
         
         // Add separator
-        contentBox.PackStart(new HSeparator(), false, false, 0);
+        separator = new Separator(Orientation.Horizontal);
+        contentBox.PackStart(separator, false, false, 0);
         
         // Create content area
-        var contentArea = new VBox(false, 10);
+        var contentArea = new Box(Orientation.Vertical,10);
+        contentArea.Homogeneous = false;
         contentArea.MarginStart = contentArea.MarginEnd = contentArea.MarginTop = contentArea.MarginBottom = 20;
         
         welcomeLabel = new Label("Your Virtual Machines");
@@ -37,7 +43,8 @@ public class DashboardPage : BasePage
         
         spinner = new Spinner();
         
-        vmListBox = new VBox(false, 10);
+        vmListBox = new Box(Orientation.Vertical,10);
+        vmListBox.Homogeneous = false;
         
         scrolledWindow = new ScrolledWindow();
         scrolledWindow.HeightRequest = 400;
@@ -56,11 +63,11 @@ public class DashboardPage : BasePage
     private Widget CreateVMWidget(JObject vmData)
     {
         var frame = new Frame();
-        var box = new VBox(false, 5);
+        var box = new Box(Orientation.Vertical, 5);
         box.MarginStart = box.MarginEnd = box.MarginTop = box.MarginBottom = 10;
 
         // Title with Status
-        var titleBox = new HBox(false, 5);
+        var titleBox = new Box(Orientation.Horizontal, 5);
         var titleLabel = new Label($"<b>{vmData["title"]}</b>");
         titleLabel.UseMarkup = true;
         titleLabel.Halign = Align.Start;
@@ -93,7 +100,7 @@ public class DashboardPage : BasePage
         };
         
         // Button container for alignment
-        var buttonBox = new HBox(false, 0);
+        var buttonBox = new Box(Orientation.Horizontal, 0);
         buttonBox.PackEnd(connectButton, false, false, 0);
 
         box.PackStart(titleBox, false, false, 0);
@@ -126,22 +133,9 @@ public class DashboardPage : BasePage
                         var vdiUrl = json["params"]?["vdi_url"]?.ToString();
                         if (!string.IsNullOrEmpty(vdiUrl))
                         {
-                            // Create a new window for the VDI connection
-                            var vdiWindow = new Window("VM Connection");
-                            vdiWindow.SetDefaultSize(1024, 768);
-                            vdiWindow.SetPosition(WindowPosition.Center);
-
-                            // Create WebKit WebView
-                            var webView = new WebKit.WebView();
-                            webView.LoadUri(vdiUrl);
-                            
-                            vdiWindow.Add(webView);
-                            vdiWindow.ShowAll();
-
-                            // Handle window close
-                            vdiWindow.DeleteEvent += (sender, e) => {
-                                vdiWindow.Destroy();
-                            };
+                            // Create VM connection window with ephemeral WebView
+                            var vmWindow = new VMConnectionWindow($"VM Connection - {vmId}", vmId);
+                            vmWindow.Connect(vdiUrl);
                         }
                     }
                 }
@@ -257,24 +251,29 @@ public class DashboardPage : BasePage
         this.Visible = false;
     }
 
-    private HBox CreateNavBar()
+    private Box CreateNavBar()
     {
-        var navbar = new HBox(false, 10);
+        var navbar = new Box(Orientation.Horizontal, 10);
+        navbar.Homogeneous = false;
         navbar.MarginStart = navbar.MarginEnd = navbar.MarginTop = navbar.MarginBottom = 10;
         
         // User Info Card (Left)
         var userInfoCard = new EventBox();
-        var userInfoBox = new VBox(false, 5);
+        var userInfoBox = new Box(Orientation.Vertical, 10);
+        userInfoBox.Homogeneous = false;
         userInfoBox.MarginStart = userInfoBox.MarginEnd = userInfoBox.MarginTop = userInfoBox.MarginBottom = 10;
-        userInfoCard.ModifyBg(StateType.Normal, new Gdk.Color(0, 146, 225)); // #0092E1
+        
+        // Set background color using CSS
+        userInfoCard.StyleContext.AddClass("user-info-card");
         
         var nameLabel = new Label("Loading...");
-        nameLabel.ModifyFg(StateType.Normal, new Gdk.Color(255, 255, 255));
+        nameLabel.StyleContext.AddClass("user-info-text");
+        
         userInfoBox.PackStart(nameLabel, false, false, 0);
         userInfoCard.Add(userInfoBox);
         
         // Balance Info (Middle)
-        var balanceBox = new VBox(false, 5);
+        var balanceBox = new Box(Orientation.Vertical, 5);
         balanceBox.Halign = Align.Center;
         var balanceLabel = new Label("Balance: Loading...");
         var pointBalanceLabel = new Label("Points: Loading...");

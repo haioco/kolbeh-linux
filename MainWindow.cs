@@ -72,6 +72,12 @@ public class MainWindow : Window
                 color: white;
                 padding: 5px 10px;
             }
+            .user-info-card {
+                background-color: #0092E1;
+            }
+            .user-info-text {
+                color: #FFFFFF;
+            }
         ");
         StyleContext.AddProviderForScreen(Screen, cssProvider, 800);
     }

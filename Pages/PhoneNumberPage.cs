@@ -13,7 +13,8 @@ public class PhoneNumberPage : BasePage
     {
         Console.Out.WriteLine($"PHONE NUMBER PAGE INITIALIZED");
         // Create centered container
-        var centerBox = new VBox(false, 10);
+        var centerBox = new Box(Orientation.Vertical, 10);
+        centerBox.Homogeneous = false;
         centerBox.Halign = Align.Center;
         centerBox.Valign = Align.Center;
 
