@@ -1,5 +1,6 @@
 using System;
 using Gtk;
+using System.Threading.Tasks;
 
 namespace GuacamoleLinuxApp
 {
@@ -13,12 +14,22 @@ namespace GuacamoleLinuxApp
             var app = new Application("org.GuacamoleLinuxApp.GuacamoleLinuxApp", GLib.ApplicationFlags.None);
             app.Register(GLib.Cancellable.Current);
 
-            var win = new MainWindow();
-            // win.SetSizeRequest(800, 600); // Set a minimum size for the window
-            // win.Resizable = true; // Allow the window to be resizable
-            app.AddWindow(win);
+            // Show splash screen
+            var splashScreen = new SplashScreen();
+            splashScreen.ShowAll();
 
-            win.Show();
+            // Delay for splash screen
+            Task.Delay(2500).ContinueWith(t =>
+            {
+                Application.Invoke((sender, e) =>
+                {
+                    splashScreen.Hide();
+                    var win = new MainWindow();
+                    app.AddWindow(win);
+                    win.Show();
+                });
+            });
+
             Application.Run();
         }
     }
