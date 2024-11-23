@@ -18,14 +18,14 @@ public class SplashScreen : Window
         
         // Create container
         container = new VBox();
-        container.Spacing = 20;
+        container.Spacing = 0;
         container.MarginStart = container.MarginEnd = container.MarginTop = container.MarginBottom = 0;
 
         // Load and display logo
         try 
         {
             logoImage = new Image("kolbeh.png");
-            logoImage.SetSizeRequest(320, 400);  // Set size of the image to fill the window
+            logoImage.SetSizeRequest(400, 400);  // Set size of the image to fill the window
         }
         catch (Exception ex)
         {
@@ -38,13 +38,13 @@ public class SplashScreen : Window
         titleLabel.StyleContext.AddClass("splash-title");
 
         // Create progress bar
-        progressBar = new ProgressBar();
-        progressBar.Fraction = 0.0;
+        // progressBar = new ProgressBar();
+        // progressBar.Fraction = 0.0;
 
         // Pack widgets
         container.PackStart(logoImage, true, true, 0);
-        container.PackStart(titleLabel, false, false, 0);
-        container.PackStart(progressBar, false, false, 0);
+        // container.PackStart(titleLabel, false, false, 0);
+        // container.PackStart(progressBar, false, false, 0);
 
         Add(container);
 
@@ -67,13 +67,13 @@ public class SplashScreen : Window
         ShowAll();
 
         // Simulate loading progress
-        for (double i = 0; i <= 1.0; i += 0.1)
-        {
-            progressBar.Fraction = i;
-            await Task.Delay(100);  // Delay for animation effect
-            while (Application.EventsPending())
-                Application.RunIteration();
-        }
+        // for (double i = 0; i <= 1.0; i += 0.1)
+        // {
+        //     progressBar.Fraction = i;
+        //     await Task.Delay(0);  // Delay for animation effect
+        //     while (Application.EventsPending())
+        //         Application.RunIteration();
+        // }
 
         await Task.Delay(500);  // Final delay before closing
         Hide();
