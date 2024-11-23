@@ -96,7 +96,7 @@ public class DashboardPage : BasePage
         // Add Connect button
         var connectButton = new Button("Connect");
         connectButton.Clicked += async (sender, e) => {
-            await ConnectToVM(vmData["id"].ToString());
+            await ConnectToVM(vmData["id"].ToString(), vmData["title"].ToString());
         };
         
         // Button container for alignment
@@ -113,7 +113,7 @@ public class DashboardPage : BasePage
         return frame;
     }
 
-    private async Task ConnectToVM(string vmId)
+    private async Task ConnectToVM(string vmId, string vmName)
     {
         try
         {
@@ -133,9 +133,10 @@ public class DashboardPage : BasePage
                         var vdiUrl = json["params"]?["vdi_url"]?.ToString();
                         if (!string.IsNullOrEmpty(vdiUrl))
                         {
-                            // Create VM connection window with ephemeral WebView
-                            var vmWindow = new VMConnectionWindow($"VM Connection - {vmId}", vmId);
+                            // Create VM connection window with the VM's name
+                            var vmWindow = new VMConnectionWindow(vmName, vmId);
                             vmWindow.Connect(vdiUrl);
+                            // vmWindow.Connect("https://ir2.vdi.haiocloud.com/");
                         }
                     }
                 }

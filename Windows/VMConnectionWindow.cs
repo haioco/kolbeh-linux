@@ -2,6 +2,8 @@ using Gtk;
 using WebKit;
 using System;
 using System.IO;
+using System.Net.Http;
+using System.Reflection;
 
 public class VMConnectionWindow : Window
 {
@@ -9,8 +11,9 @@ public class VMConnectionWindow : Window
     private string vmId;
     private string sessionDir;
 
-    public VMConnectionWindow(string title, string vmId) : base(title)
+    public VMConnectionWindow(string vmName, string vmId) : base($"{vmName} - {vmId}")
     {
+        // Title = $"{vmName} - {vmId}";
         this.vmId = vmId;
         
         SetDefaultSize(1024, 768);
@@ -62,7 +65,38 @@ public class VMConnectionWindow : Window
     {
         try
         {
+            // Load the initial URL to set up session data and connection parameters
             webView.LoadUri(url);
+            webView.LoadChanged += (sender, e) => {
+            if (e.LoadEvent == LoadEvent.Finished)
+                {
+                Console.Out.Write("LOAD CHANGES....");
+                webView.RunJavascript(
+                    """
+                    (function lookForButton() {
+                    const button = Array.from(document.querySelectorAll('button'))
+                        .find(el =>
+                            el.getAttribute('ng-repeat') === 'action in notification.actions' &&
+                            el.getAttribute('ng-click') === 'action.callback()' &&
+                            el.getAttribute('ng-class') === 'action.className' &&
+                            el.classList.contains('home') &&
+                            el.textContent.trim() === 'Home'
+                        );
+
+                    if (button) {
+                        button.click();
+                        console.log('Button found and clicked successfully!');
+                    } else {
+                        console.log('Button not found. Retrying...');
+                        setTimeout(lookForButton, 100); // Retry after 100ms
+                    }
+                    })();
+                    """
+                );
+                }
+            };
+
+            // webView.LoadUri("https://ir2.vdi.haiocloud.com/");
         }
         catch (Exception ex)
         {

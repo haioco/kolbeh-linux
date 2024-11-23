@@ -7,7 +7,7 @@ public class SplashScreen : Window
     private Image logoImage;
     private Label titleLabel;
     private ProgressBar progressBar;
-    private VBox container;
+    private Box container;
 
     public SplashScreen() : base(WindowType.Popup)
     {
@@ -17,8 +17,8 @@ public class SplashScreen : Window
         Decorated = false;  // Remove window decorations
         
         // Create container
-        container = new VBox();
-        container.Spacing = 0;
+        container = new Box(Orientation.Vertical, 0);
+        // container.Spacing = 0;
         container.MarginStart = container.MarginEnd = container.MarginTop = container.MarginBottom = 0;
 
         // Load and display logo
