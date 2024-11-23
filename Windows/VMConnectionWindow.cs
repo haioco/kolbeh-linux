@@ -36,7 +36,7 @@ public class VMConnectionWindow : Window
         settings.EnableMediaStream = true;
         settings.EnableSmoothScrolling = true;
         settings.EnableWriteConsoleMessagesToStdout = true;
-        
+
         // Handle navigation to ensure session isolation
         webView.LoadChanged += (sender, e) => {
             if (e.LoadEvent == LoadEvent.Finished)
@@ -65,34 +65,49 @@ public class VMConnectionWindow : Window
     {
         try
         {
-            // Load the initial URL to set up session data and connection parameters
-            webView.LoadUri(url);
-            webView.LoadChanged += (sender, e) => {
+
+        var auto_resize_window = 
+            @"
+            window.onresize = function() {
+                clearTimeout(window.reloadTimeout);
+                window.reloadTimeout = setTimeout(function() {
+                    location.reload();
+                    }, 500);
+                };
+            ";
+        var auto_redirect=
+            @"
+            (function lookForButton() {
+                const button = Array.from(document.querySelectorAll('button'))
+                    .find(el =>
+                        el.getAttribute('ng-repeat') === 'action in notification.actions' &&
+                        el.getAttribute('ng-click') === 'action.callback()' &&
+                        el.getAttribute('ng-class') === 'action.className' &&
+                        el.classList.contains('home') &&
+                        el.textContent.trim() === 'Home'
+                    );
+
+                if (button) {
+                    button.click();
+                    console.log('Button found and clicked successfully!');
+                } else {
+                    console.log('Button not found. Retrying...');
+                    setTimeout(lookForButton, 100); // Retry after 100ms
+                }
+                })();
+            ";
+
+        // Load the initial URL to set up session data and connection parameters
+        webView.LoadUri(url);
+        var redirect = true;
+        webView.LoadChanged += (sender, e) => {
             if (e.LoadEvent == LoadEvent.Finished)
                 {
-                Console.Out.Write("LOAD CHANGES....");
-                webView.RunJavascript(
-                    """
-                    (function lookForButton() {
-                    const button = Array.from(document.querySelectorAll('button'))
-                        .find(el =>
-                            el.getAttribute('ng-repeat') === 'action in notification.actions' &&
-                            el.getAttribute('ng-click') === 'action.callback()' &&
-                            el.getAttribute('ng-class') === 'action.className' &&
-                            el.classList.contains('home') &&
-                            el.textContent.trim() === 'Home'
-                        );
-
-                    if (button) {
-                        button.click();
-                        console.log('Button found and clicked successfully!');
-                    } else {
-                        console.log('Button not found. Retrying...');
-                        setTimeout(lookForButton, 100); // Retry after 100ms
+                    if (redirect) {
+                        webView.RunJavascript(auto_redirect);
                     }
-                    })();
-                    """
-                );
+                    webView.RunJavascript(auto_resize_window);
+                    redirect = false;
                 }
             };
 
