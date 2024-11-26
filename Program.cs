@@ -9,11 +9,17 @@ namespace GuacamoleLinuxApp
         [STAThread]
         public static void Main(string[] args)
         {
+
             Application.Init();
 
             var app = new Application("org.GuacamoleLinuxApp.GuacamoleLinuxApp", GLib.ApplicationFlags.None);
             app.Register(GLib.Cancellable.Current);
 
+            if (MainWindow.DEBUG) {
+                var win = new MainWindow();
+                app.AddWindow(win);
+                win.Show();                
+            } else {
             // Show splash screen
             var splashScreen = new SplashScreen();
             splashScreen.ShowAll();
@@ -29,7 +35,7 @@ namespace GuacamoleLinuxApp
                     win.Show();
                 });
             });
-
+            }
             Application.Run();
         }
     }

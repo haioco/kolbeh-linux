@@ -76,6 +76,8 @@ public class PhoneNumberPage : BasePage
         continueButton.Sensitive = false;
         phoneEntry.Sensitive = false;
 
+        MainWindow.NavigateToOtpPage(phone);
+
         try
         {
             bool success = await MainWindow.RequestOtp(phone);
@@ -122,7 +124,8 @@ public class PhoneNumberPage : BasePage
 
         dialog.ShowAll();
 
-        dialog.Response += (o, args) => {
+        dialog.Response += (o, args) =>
+        {
             if (args.ResponseId == ResponseType.Accept && !string.IsNullOrEmpty(tokenEntry.Text))
             {
                 MainWindow.SetDebugTokens(tokenEntry.Text);
@@ -147,4 +150,4 @@ public class PhoneNumberPage : BasePage
     {
         this.Visible = false;
     }
-} 
+}

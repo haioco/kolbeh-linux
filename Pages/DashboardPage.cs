@@ -16,45 +16,44 @@ public class DashboardPage : BasePage
     private ScrolledWindow scrolledWindow;
     private Box vmListBox;  // Container for VM items
     private Separator separator;
-
     public DashboardPage(MainWindow mainWindow) : base(mainWindow)
     {
         Console.Out.WriteLine($"DASHBOARD INITIALIZED");
-        
+
         // Create main container
         contentBox = new Box(Orientation.Vertical, 10);
         contentBox.Homogeneous = false;
-        
+
         // Add navbar
         var navbar = CreateNavBar();
         contentBox.PackStart(navbar, false, false, 0);
-        
+
         // Add separator
         separator = new Separator(Orientation.Horizontal);
         contentBox.PackStart(separator, false, false, 0);
-        
+
         // Create content area
-        var contentArea = new Box(Orientation.Vertical,10);
+        var contentArea = new Box(Orientation.Vertical, 10);
         contentArea.Homogeneous = false;
         contentArea.MarginStart = contentArea.MarginEnd = contentArea.MarginTop = contentArea.MarginBottom = 20;
-        
+
         welcomeLabel = new Label("Your Virtual Machines");
         welcomeLabel.StyleContext.AddClass("title");
-        
+
         spinner = new Spinner();
-        
-        vmListBox = new Box(Orientation.Vertical,10);
+
+        vmListBox = new Box(Orientation.Vertical, 10);
         vmListBox.Homogeneous = false;
-        
+
         scrolledWindow = new ScrolledWindow();
         scrolledWindow.HeightRequest = 400;
         scrolledWindow.WidthRequest = 600;
         scrolledWindow.Add(vmListBox);
-        
+
         contentArea.PackStart(welcomeLabel, false, false, 0);
         contentArea.PackStart(spinner, false, false, 0);
         contentArea.PackStart(scrolledWindow, true, true, 0);
-        
+
         contentBox.PackStart(contentArea, true, true, 0);
 
         PackStart(contentBox, true, true, 0);
@@ -71,10 +70,10 @@ public class DashboardPage : BasePage
         var titleLabel = new Label($"<b>{vmData["title"]}</b>");
         titleLabel.UseMarkup = true;
         titleLabel.Halign = Align.Start;
-        
+
         var statusLabel = new Label($"({vmData["vm_status_title"]})");
         statusLabel.StyleContext.AddClass(vmData["vm_status_title"].ToString().ToLower() == "running" ? "status-running" : "status-stopped");
-        
+
         titleBox.PackStart(titleLabel, true, true, 0);
         titleBox.PackStart(statusLabel, false, false, 0);
 
@@ -95,10 +94,11 @@ public class DashboardPage : BasePage
 
         // Add Connect button
         var connectButton = new Button("Connect");
-        connectButton.Clicked += async (sender, e) => {
+        connectButton.Clicked += async (sender, e) =>
+        {
             await ConnectToVM(vmData["id"].ToString(), vmData["title"].ToString());
         };
-        
+
         // Button container for alignment
         var buttonBox = new Box(Orientation.Horizontal, 0);
         buttonBox.PackEnd(connectButton, false, false, 0);
@@ -122,12 +122,12 @@ public class DashboardPage : BasePage
             {
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
                 var response = await client.GetAsync($"https://api.haio.ir/v1/cloud/desktop/{vmId}/login");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var json = JObject.Parse(content);
-                    
+
                     if (json["status"]?.Value<bool>() == true)
                     {
                         var vdiUrl = json["params"]?["vdi_url"]?.ToString();
@@ -169,12 +169,12 @@ public class DashboardPage : BasePage
             {
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
                 var response = await client.GetAsync("https://api.haio.ir/v1/cloud/desktop");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var json = JObject.Parse(content);
-                    
+
                     if (json["status"]?.Value<bool>() == true)
                     {
                         var vms = json["params"]?["data"] as JArray;
@@ -232,16 +232,20 @@ public class DashboardPage : BasePage
     {
         ShowAll();
         Console.Out.WriteLine("Dashboard Show() called");
-        
+
         // Execute immediately on the UI thread
-        Application.Invoke(async (sender, args) => {
+        Application.Invoke(async (sender, args) =>
+        {
             Console.Out.WriteLine("Starting to fetch data...");
-            try {
+            try
+            {
                 await Task.WhenAll(
                     FetchVirtualMachines(),
                     UpdateUserInfo()
                 );
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Console.Out.WriteLine($"Error fetching data: {ex}");
             }
         });
@@ -257,22 +261,22 @@ public class DashboardPage : BasePage
         var navbar = new Box(Orientation.Horizontal, 10);
         navbar.Homogeneous = false;
         navbar.MarginStart = navbar.MarginEnd = navbar.MarginTop = navbar.MarginBottom = 10;
-        
+
         // User Info Card (Left)
         var userInfoCard = new EventBox();
         var userInfoBox = new Box(Orientation.Vertical, 10);
         userInfoBox.Homogeneous = false;
         userInfoBox.MarginStart = userInfoBox.MarginEnd = userInfoBox.MarginTop = userInfoBox.MarginBottom = 10;
-        
+
         // Set background color using CSS
         userInfoCard.StyleContext.AddClass("user-info-card");
-        
+
         var nameLabel = new Label("Loading...");
         nameLabel.StyleContext.AddClass("user-info-text");
-        
+
         userInfoBox.PackStart(nameLabel, false, false, 0);
         userInfoCard.Add(userInfoBox);
-        
+
         // Balance Info (Middle)
         var balanceBox = new Box(Orientation.Vertical, 5);
         balanceBox.Halign = Align.Center;
@@ -280,11 +284,11 @@ public class DashboardPage : BasePage
         var pointBalanceLabel = new Label("Points: Loading...");
         balanceBox.PackStart(balanceLabel, false, false, 0);
         balanceBox.PackStart(pointBalanceLabel, false, false, 0);
-        
+
         // Logout Button (Right)
         var logoutButton = new Button("Logout");
         logoutButton.Clicked += LogoutButton_Clicked;
-        
+
         navbar.PackStart(userInfoCard, false, false, 0);
         navbar.PackStart(balanceBox, true, true, 0);
         navbar.PackEnd(logoutButton, false, false, 0);
@@ -312,16 +316,17 @@ public class DashboardPage : BasePage
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
                 var response = await client.GetAsync("https://api.haio.ir/v1/user/info");
                 Console.Out.WriteLine($"USER INFO RESPONSE: {response.StatusCode}");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var json = JObject.Parse(content);
-                    
+
                     if (json["status"]?.Value<bool>() == true)
                     {
                         var userInfo = json["params"] as JObject;
-                        Application.Invoke((sender, args) => {
+                        Application.Invoke((sender, args) =>
+                        {
                             nameLabel.Text = $"{userInfo["first_name"]} {userInfo["last_name"]}";
                             balanceLabel.Text = $"Balance: {userInfo["balance"]}";
                             pointBalanceLabel.Text = $"Points: {userInfo["point_balance"]}";
@@ -345,12 +350,13 @@ public class DashboardPage : BasePage
             ButtonsType.None,
             "Are you sure you want to logout?"
         );
-        
+
         dialog.Title = "Logout?";
         dialog.AddButton("Cancel", ResponseType.Cancel);
         dialog.AddButton("Yes", ResponseType.Yes);
 
-        dialog.Response += (o, args) => {
+        dialog.Response += (o, args) =>
+        {
             dialog.Destroy();
             if (args.ResponseId == ResponseType.Yes)
             {
@@ -360,4 +366,4 @@ public class DashboardPage : BasePage
 
         dialog.Show();
     }
-} 
+}

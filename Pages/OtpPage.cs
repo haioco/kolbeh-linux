@@ -12,11 +12,11 @@ public class OtpPage : BasePage
     private string phoneNumber;
     private Label phoneLabel;
     private Button resendButton;
-    private Label cooldownLabel;
     private uint timerHandle;
-    private const int COOLDOWN_SECONDS = 600; // 10 minutes
     private int remainingSeconds;
-    private bool isInCooldown = false;
+    private bool isFirstResend = true;
+    private const int INITIAL_COOLDOWN_SECONDS = 120; // 2 minutes
+    private const int SUBSEQUENT_COOLDOWN_SECONDS = 600; // 10 minutes
 
     public OtpPage(MainWindow mainWindow) : base(mainWindow)
     {
@@ -37,27 +37,27 @@ public class OtpPage : BasePage
         phoneLabel.UseMarkup = true;
         centerBox.PackStart(phoneLabel, false, false, 0);
 
-        // OTP input
-        otpEntry = new Entry { PlaceholderText = "Enter 4-digit OTP", MaxLength = 4 };
-        otpEntry.WidthRequest = 200;
-        centerBox.PackStart(otpEntry, false, false, 0);
-
-        // Buttons container
-        var buttonBox = new Box(Orientation.Horizontal, 10);
-        buttonBox.Homogeneous = true;
-        buttonBox.Halign = Align.Center;
+        // Input container
+        var inputBox = new Box(Orientation.Horizontal, 10);
+        inputBox.Homogeneous = false;
+        inputBox.Halign = Align.Center;
 
         // Back button
         backButton = new Button("Back");
         backButton.Clicked += BackButton_Clicked;
-        buttonBox.PackStart(backButton, false, false, 0);
+        inputBox.PackStart(backButton, false, false, 0);
+
+        // OTP input
+        otpEntry = new Entry { PlaceholderText = "Enter 4-digit OTP", MaxLength = 4 };
+        otpEntry.WidthRequest = 200;
+        inputBox.PackStart(otpEntry, false, false, 0);
 
         // Verify button
-        verifyButton = new Button("Verify OTP");
+        verifyButton = new Button("Verify");
         verifyButton.Clicked += VerifyButton_Clicked;
-        buttonBox.PackStart(verifyButton, false, false, 0);
+        inputBox.PackStart(verifyButton, false, false, 0);
 
-        centerBox.PackStart(buttonBox, false, false, 0);
+        centerBox.PackStart(inputBox, false, false, 0);
 
         // Status label
         statusLabel = new Label("");
@@ -67,11 +67,6 @@ public class OtpPage : BasePage
         // Spinner
         spinner = new Spinner();
         centerBox.PackStart(spinner, false, false, 0);
-
-        // Cooldown label
-        cooldownLabel = new Label("");
-        cooldownLabel.UseMarkup = true;
-        centerBox.PackStart(cooldownLabel, false, false, 0);
 
         // "Resend OTP" button
         resendButton = new Button("Resend OTP");
@@ -84,35 +79,41 @@ public class OtpPage : BasePage
     private void BackButton_Clicked(object sender, EventArgs e)
     {
         StopCooldownTimer();
-        MainWindow.NavigateBackToPhone(phoneNumber);
+        MainWindow.NavigateToPhone(phoneNumber);
     }
 
     private async void ResendButton_Clicked(object sender, EventArgs e)
     {
-        if (isInCooldown) return; // Extra safety check
+        if (isFirstResend)
+        {
+            StartCooldown(SUBSEQUENT_COOLDOWN_SECONDS);
+            isFirstResend = false;
+        }
+        else
+        {
+            StartCooldown(SUBSEQUENT_COOLDOWN_SECONDS);
+        }
 
         spinner.Start();
-        statusLabel.Text = "Resending OTP...";
+        statusLabel.Text = "Requesting OTP...";
 
         bool success = await MainWindow.RequestOtp(phoneNumber);
         
         if (success)
         {
-            statusLabel.Markup = "<span foreground='green'>OTP resent successfully</span>";
+            statusLabel.Markup = "<span foreground='green'>OTP requested successfully</span>";
             otpEntry.Text = "";
-            StartCooldown();
         }
         else
         {
-            MainWindow.NavigateBackToPhone(phoneNumber);
+            statusLabel.Markup = "<span foreground='red'>Failed to request OTP. Please try again.</span>";
         }
         spinner.Stop();
     }
 
-    private void StartCooldown()
+    private void StartCooldown(int cooldownSeconds)
     {
-        isInCooldown = true;
-        remainingSeconds = COOLDOWN_SECONDS;
+        remainingSeconds = cooldownSeconds;
         UpdateCooldownUI();
         
         // Stop any existing timer
@@ -135,9 +136,8 @@ public class OtpPage : BasePage
 
     private void EndCooldown()
     {
-        isInCooldown = false;
-        cooldownLabel.Text = "";
-        resendButton.Visible = true;
+        resendButton.Sensitive = true;
+        resendButton.Label = "Resend OTP";
         timerHandle = 0;
     }
 
@@ -154,15 +154,15 @@ public class OtpPage : BasePage
     {
         int minutes = remainingSeconds / 60;
         int seconds = remainingSeconds % 60;
-        cooldownLabel.Markup = $"<span foreground='blue'>Resend available in {minutes:D2}:{seconds:D2}</span>";
-        resendButton.Visible = !isInCooldown;
+        resendButton.Label = $"Resend in {minutes:D2}:{seconds:D2}";
+        resendButton.Sensitive = false;
     }
 
     public void SetPhoneNumber(string phone)
     {
         phoneNumber = phone;
         phoneLabel.Markup = $"<span>Code sent to: {phone}</span>";
-        StartCooldown(); // Start cooldown when page is shown
+        StartCooldown(INITIAL_COOLDOWN_SECONDS); // Start initial cooldown when page is shown
     }
 
     private async void VerifyButton_Clicked(object sender, EventArgs e)
@@ -183,12 +183,9 @@ public class OtpPage : BasePage
         try
         {
             bool success = await MainWindow.VerifyOtp(phoneNumber, otp);
-            Console.Out.WriteLine($"VERIFICATION RESULT:\nPhone_number:{phoneNumber}\nOTP:{otp}\nverified:{success}");
             if (success)
             {
-                Console.Out.WriteLine("Verification successful, navigating to dashboard...");
                 StopCooldownTimer();
-                // Force UI update to happen on the main thread
                 Application.Invoke((sender, args) => {
                     MainWindow.NavigateToDashboard();
                 });
@@ -216,7 +213,6 @@ public class OtpPage : BasePage
     public override void Show()
     {
         ShowAll();
-        UpdateCooldownUI(); // Ensure resend button visibility is correct
         otpEntry.Text = "";
         statusLabel.Text = "";
     }

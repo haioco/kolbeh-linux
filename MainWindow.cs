@@ -22,7 +22,7 @@ public class MainWindow : Window
     private Dictionary<string, DateTime> phoneCooldowns = new Dictionary<string, DateTime>();
     private const int COOLDOWN_SECONDS = 600; // 10 minutes
 
-    public MainWindow() : base("OTP Authentication")
+    public MainWindow() : base("Kolbeh VDI Solution")
     {
         SetDefaultSize(400, 500);
         SetPosition(WindowPosition.Center);
@@ -99,6 +99,7 @@ public class MainWindow : Window
         }
 
         return (false, remainingTime);
+
     }
 
     private void StartPhoneCooldown(string phone)
@@ -108,13 +109,6 @@ public class MainWindow : Window
 
     public async Task<bool> RequestOtp(string phone)
     {
-        var (canRequest, remainingTime) = CheckPhoneCooldown(phone);
-        
-        if (!canRequest)
-        {
-            return false;
-        }
-
         try
         {
             using (HttpClient client = new HttpClient())
@@ -125,10 +119,9 @@ public class MainWindow : Window
                 });
 
                 HttpResponseMessage response = await client.PostAsync("https://api.haio.ir/v1/user/otp/login", content);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
-                    StartPhoneCooldown(phone);
                     return true;
                 }
                 return false;
@@ -153,18 +146,18 @@ public class MainWindow : Window
                 });
 
                 HttpResponseMessage response = await client.PostAsync("https://api.haio.ir/v1/user/otp/login/verify", content);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     string responseString = await response.Content.ReadAsStringAsync();
                     JObject json = JObject.Parse(responseString);
-                    
+
                     if (json["status"]?.Value<bool>() == true)
                     {
                         accessToken = json["params"]?["data"]?["access_token"]?.ToString();
                         Console.Out.WriteLine($"ACCESS TOKEN RECEIVED: {accessToken}");
                         refreshToken = json["params"]?["data"]?["refresh_token"]?.ToString();
-                        
+
                         if (!string.IsNullOrEmpty(accessToken))
                         {
                             // Clear cooldown on successful verification
@@ -188,13 +181,19 @@ public class MainWindow : Window
         pageStack.VisibleChildName = "otp";
     }
 
+    public void InitializeDashboardPage(string accessToken)
+    {
+        pageStack.AddNamed(dashboardPage, "dashboard");
+        Add(pageStack);
+    }
+
     public void NavigateToDashboard()
     {
         Console.Out.WriteLine("Navigating to Dashboard...");
         // Create new DashboardPage if it doesn't exist
         if (dashboardPage == null)
         {
-            Console.Out.WriteLine("Creating new DashboardPage instance");
+            var (accessToken, _) = GetStoredTokens();
             dashboardPage = new DashboardPage(this);
             pageStack.AddNamed(dashboardPage, "dashboard");
         }
@@ -207,7 +206,7 @@ public class MainWindow : Window
         return (accessToken, refreshToken);
     }
 
-    public void NavigateBackToPhone(string phone)
+    public void NavigateToPhone(string phone)
     {
         phoneNumberPage.SetPhoneNumber(phone);
         pageStack.VisibleChildName = "phone";
@@ -218,13 +217,13 @@ public class MainWindow : Window
         // Clear tokens
         accessToken = null;
         refreshToken = null;
-        
+
         // Reset pages
         pageStack.VisibleChildName = "phone";
-        
+
         // Clear any sensitive data
         phoneNumberPage.SetPhoneNumber("");
-        
+
         // Clean up dashboard
         if (dashboardPage != null)
         {
@@ -240,3 +239,4 @@ public class MainWindow : Window
         refreshToken = "debug_refresh_token";
     }
 }
+
