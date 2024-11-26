@@ -24,7 +24,7 @@ public class MainWindow : Window
 
     public MainWindow() : base("Kolbeh VDI Solution")
     {
-        SetDefaultSize(400, 500);
+        SetDefaultSize(750, 350);
         SetPosition(WindowPosition.Center);
 
         // Initialize pages
@@ -73,6 +73,7 @@ public class MainWindow : Window
                 padding: 5px 10px;
             }
             .user-info-card {
+                border-radius: 10px;
                 background-color: #0092E1;
             }
             .user-info-text {
