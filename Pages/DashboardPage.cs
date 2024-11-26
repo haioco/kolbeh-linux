@@ -35,8 +35,13 @@ public class DashboardPage : BasePage
         vmFlowBox.Homogeneous = false;
         vmFlowBox.SelectionMode = SelectionMode.None;
 
+        // Add scrolling support
+        var scrolledWindow = new ScrolledWindow();
+        scrolledWindow.Add(vmFlowBox);
+        scrolledWindow.SetPolicy(PolicyType.Automatic, PolicyType.Automatic);
+
         contentArea.PackStart(spinner, false, false, 0);
-        contentArea.PackStart(vmFlowBox, true, true, 0);
+        contentArea.PackStart(scrolledWindow, true, true, 0);
 
         contentBox.PackStart(contentArea, true, true, 0);
 
@@ -67,15 +72,20 @@ public class DashboardPage : BasePage
         titleBox.PackStart(titleLabel, true, true, 0);
         titleBox.PackStart(statusCircle, false, false, 0);
 
+        // Load and display the OS icon
+        var iconPath = "assets/Windows.png";
+        var pixbuf = new Gdk.Pixbuf(iconPath);
+        var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear); // Scale the icon
+        var osIcon = new Image(scaledPixbuf);
+
         // Specs
         var specsBox = new Box(Orientation.Vertical, 2);
-        specsBox.Halign = Align.Start;
+        specsBox.Halign = Align.Center;
         specsBox.PackStart(new Label($"CPU: {vmData["vm_cpu"]} cores"), false, false, 0);
         specsBox.PackStart(new Label($"RAM: {vmData["vm_ram"]} GB"), false, false, 0);
         specsBox.PackStart(new Label($"Storage: {vmData["vm_storage"]} GB"), false, false, 0);
         specsBox.PackStart(new Label($"OS: {vmData["image"]["title"]}"), false, false, 0);
         specsBox.PackStart(new Label($"Location: {vmData["country"]["country_name"]}"), false, false, 0);
-
         // Add Connect button
         var connectButton = new Button("Connect");
         connectButton.Sensitive = vmData["vm_status_title"].ToString() == "آنلاین";
@@ -85,6 +95,7 @@ public class DashboardPage : BasePage
         };
 
         box.PackStart(titleBox, false, false, 0);
+        box.PackStart(osIcon, false, false, 0); // Add OS icon below the title
         box.PackStart(specsBox, false, false, 0);
         box.PackStart(connectButton, false, false, 5);  // Add some padding
 
