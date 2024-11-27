@@ -11,6 +11,7 @@ public class DashboardPage : BasePage
     private Spinner spinner;
     private Box contentBox;
     private FlowBox vmFlowBox;  // Container for VM items
+    private Button refreshButton; // Refresh button
 
     public DashboardPage(MainWindow mainWindow) : base(mainWindow)
     {
@@ -23,6 +24,13 @@ public class DashboardPage : BasePage
         // Add navbar
         var navbar = CreateNavBar();
         contentBox.PackStart(navbar, false, false, 0);
+
+        // Create refresh button
+        refreshButton = new Button();
+        var refreshIcon = new Image(Stock.Refresh, IconSize.Button);
+        refreshButton.Image = refreshIcon;
+        refreshButton.Clicked += async (sender, e) => await FetchVirtualMachines();
+        contentBox.PackStart(refreshButton, false, false, 0);
 
         // Create content area
         var contentArea = new Box(Orientation.Vertical, 10);
@@ -52,7 +60,7 @@ public class DashboardPage : BasePage
     {
         var frame = new Frame();
         var box = new Box(Orientation.Vertical, 5);
-        box.MarginStart = box.MarginEnd = box.MarginTop = box.MarginBottom = 10;
+        box.MarginStart = box.MarginEnd = box.MarginTop = box.MarginBottom = 30;
 
         // Title with Status
         var titleBox = new Box(Orientation.Horizontal, 5);

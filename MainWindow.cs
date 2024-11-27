@@ -24,7 +24,7 @@ public class MainWindow : Window
 
     public MainWindow() : base("Kolbeh VDI Solution")
     {
-        SetDefaultSize(750, 350);
+        SetDefaultSize(700, 500);
         SetPosition(WindowPosition.Center);
 
         // Initialize pages
@@ -32,7 +32,7 @@ public class MainWindow : Window
         otpPage = new OtpPage(this);
         dashboardPage = new DashboardPage(this);
 
-        // Setup page stack
+        // Setup page stack;
         pageStack = new Stack();
         pageStack.AddNamed(phoneNumberPage, "phone");
         pageStack.AddNamed(otpPage, "otp");
