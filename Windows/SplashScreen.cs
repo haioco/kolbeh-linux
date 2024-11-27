@@ -6,7 +6,7 @@ public class SplashScreen : Window
 {
     private Image logoImage;
     private Label titleLabel;
-    private ProgressBar progressBar;
+    // private ProgressBar progressBar;
     private Box container;
 
     public SplashScreen() : base(WindowType.Popup)

@@ -1,6 +1,6 @@
 using Gtk;
 
-public abstract class BasePage : VBox
+public abstract class BasePage : Box
 {
     protected MainWindow MainWindow { get; }
 
