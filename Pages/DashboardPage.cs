@@ -86,6 +86,8 @@ public class DashboardPage : BasePage
         var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear); // Scale the icon
         var osIcon = new Image(scaledPixbuf);
 
+        // Console.Out.Write($"TTTTTTTTTTTTTTTTTTTTTTT\n{vmData}");
+
         // Specs
         var specsBox = new Box(Orientation.Vertical, 2);
         specsBox.Halign = Align.Center;
@@ -99,7 +101,7 @@ public class DashboardPage : BasePage
         connectButton.Sensitive = vmData["vm_status_title"].ToString() == "آنلاین";
         connectButton.Clicked += async (sender, e) =>
         {
-            await ConnectToVM(vmData["id"].ToString(), vmData["title"].ToString());
+            await ConnectToVM(vmData["id"].ToString(), vmData["title"].ToString().Trim(), vmData["vm_sequence_id"].ToString());
         };
 
         box.PackStart(titleBox, false, false, 0);
@@ -112,7 +114,7 @@ public class DashboardPage : BasePage
         return frame;
     }
 
-    private async Task ConnectToVM(string vmId, string vmName)
+    private async Task ConnectToVM(string vmId, string vmName, string vmNumber)
     {
         try
         {
@@ -133,7 +135,7 @@ public class DashboardPage : BasePage
                         if (!string.IsNullOrEmpty(vdiUrl))
                         {
                             // Create VM connection window with the VM's name
-                            var vmWindow = new VMConnectionWindow(vmName, vmId);
+                            var vmWindow = new VDIConnectionWindow(vmName, vmId, vmNumber);
                             vmWindow.Connect(vdiUrl);
                         }
                     }

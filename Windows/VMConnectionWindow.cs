@@ -5,16 +5,19 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 
-public class VMConnectionWindow : Window
+public class VDIConnectionWindow : Window
 {
     private WebView webView;
     private string vmId;
+    private string vmNumber;
+
     private string sessionDir;
     private Clipboard clipboard;
 
-    public VMConnectionWindow(string vmName, string vmId) : base($"{vmName} - {vmId}")
+    public VDIConnectionWindow(string vmName, string vmId, string vmNumber) : base($"{vmName} - {vmNumber}")
     {
         this.vmId = vmId;
+        this.vmNumber = vmNumber;
         this.clipboard = Clipboard.Get(Gdk.Selection.Clipboard);
         
         SetDefaultSize(1024, 768);
@@ -37,7 +40,6 @@ public class VMConnectionWindow : Window
         settings.EnableMediaStream = true;
         settings.EnableSmoothScrolling = true;
         settings.EnableWriteConsoleMessagesToStdout = true;
-        // settings.EnableJavascriptClipboard = true;  // Enable clipboard access
         settings.JavascriptCanAccessClipboard = true;
 
         // Add key event handling for copy/paste
