@@ -15,7 +15,7 @@ public class MainWindow : Window
     // Store authentication tokens
     private string accessToken;
     private string refreshToken;
-    public static bool DEBUG = false; // Debug flag
+    public static bool DEBUG = true; // Debug flag
     // public static bool DEBUG = true; // Debug flag
 
     // Phone number cooldown tracking
@@ -138,14 +138,14 @@ public class MainWindow : Window
             }
 
             frame {
-                background-color: #011722;
+                background-color: #011732;
                 border-radius: 8px;
                 border: none;
                 box-shadow: 0 3px 4px rgba(0,0,0,0.2);
             }
 
             frame box {
-                background-color: #011722;
+                background-color: #011732;
             }
 
             scrolledwindow {
