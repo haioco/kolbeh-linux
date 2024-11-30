@@ -15,7 +15,7 @@ public class MainWindow : Window
     // Store authentication tokens
     private string accessToken;
     private string refreshToken;
-    public static bool DEBUG = true; // Debug flag
+    public static bool DEBUG = false; // Debug flag
     // public static bool DEBUG = true; // Debug flag
 
     // Phone number cooldown tracking
@@ -24,7 +24,7 @@ public class MainWindow : Window
 
     public MainWindow() : base("Kolbeh VDI Solution")
     {
-        SetDefaultSize(700, 500);
+        SetDefaultSize(700, 550);
         SetPosition(WindowPosition.Center);
 
         // Initialize pages
