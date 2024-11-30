@@ -80,13 +80,41 @@ public class DashboardPage : BasePage
         titleBox.PackStart(titleLabel, true, true, 0);
         titleBox.PackStart(statusCircle, false, false, 0);
 
-        // Load and display the OS icon
-        var iconPath = "assets/Windows.png";
-        var pixbuf = new Gdk.Pixbuf(iconPath);
-        var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear); // Scale the icon
-        var osIcon = new Image(scaledPixbuf);
-
-        // Console.Out.Write($"TTTTTTTTTTTTTTTTTTTTTTT\n{vmData}");
+        // Load and display the OS icon from base64
+        Image osIcon;
+        try 
+        {
+            var base64Icon = vmData["image"]?["image_logo"]?["attachment_content"]?.ToString();
+            if (!string.IsNullOrEmpty(base64Icon))
+            {
+                // Decode base64 to byte array
+                byte[] iconBytes = Convert.FromBase64String(base64Icon);
+                
+                // Create a MemoryStream from the byte array
+                using (var stream = new MemoryStream(iconBytes))
+                {
+                    // Create Pixbuf from the stream and scale it
+                    var pixbuf = new Gdk.Pixbuf(stream);
+                    var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear);
+                    osIcon = new Image(scaledPixbuf);
+                }
+            }
+            else
+            {
+                // Fallback to default Windows icon if no base64 image
+                var pixbuf = new Gdk.Pixbuf("assets/Windows.png");
+                var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear);
+                osIcon = new Image(scaledPixbuf);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Out.WriteLine($"Error loading icon: {ex.Message}");
+            // Fallback to default Windows icon on error
+            var pixbuf = new Gdk.Pixbuf("assets/Windows.png");
+            var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear);
+            osIcon = new Image(scaledPixbuf);
+        }
 
         // Specs
         var specsBox = new Box(Orientation.Vertical, 2);
