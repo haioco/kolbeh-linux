@@ -24,7 +24,7 @@ public class MainWindow : Window
 
     public MainWindow() : base("Kolbeh VDI Solution")
     {
-        SetDefaultSize(700, 500);
+        SetDefaultSize(700, 550);
         SetPosition(WindowPosition.Center);
 
         // Initialize pages
