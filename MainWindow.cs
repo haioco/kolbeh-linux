@@ -47,37 +47,166 @@ public class MainWindow : Window
         // Add CSS styling
         var cssProvider = new CssProvider();
         cssProvider.LoadFromData(@"
+            /* Base window styling */
+            window {
+                background-color: #01172E;
+            }
+            
+            /* Typography */
             .title { 
                 font-size: 20px;
                 font-weight: bold;
                 margin-bottom: 20px;
+                color: #FFFCE9;
             }
+
+            label {
+                color: #FFFCE9;
+            }
+
+            /* Form elements */
+            entry {
+                background: #FFFCE9;
+                color: #01172E;
+                border: none;
+                border-radius: 4px;
+                padding: 8px;
+                min-height: 20px;
+            }
+
+            entry:focus {
+                border: 1px solid #0F76A9;
+            }
+
+            button {
+                background: #0F76A9;
+                color: #FFFCE9;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                min-height: 36px;
+                transition: background-color 200ms ease;
+            }
+
+            button:hover {
+                background: #45BD80;
+            }
+
+            button:disabled {
+                background: #666666;
+                opacity: 0.7;
+            }
+
+            /* Status indicators */
             .status-running {
-                color: #2ecc71;
+                color: #45BD80;
                 font-weight: bold;
             }
+
             .status-stopped {
                 color: #e74c3c;
                 font-weight: bold;
             }
+
             .no-vms-message {
-                color: #7f8c8d;
+                color: #FFFCE9;
                 font-style: italic;
             }
+
             .error-message {
-                color: #c0392b;
+                color: #e74c3c;
             }
+
+            /* Debug elements */
             .debug-button {
                 background: #e74c3c;
-                color: white;
+                color: #FFFCE9;
                 padding: 5px 10px;
             }
+
+            /* Dashboard elements */
             .user-info-card {
                 border-radius: 10px;
-                background-color: #0092E1;
+                background-color: #0F76A9;
+                padding: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             }
+
             .user-info-text {
-                color: #FFFFFF;
+                color: #FFFCE9;
+                font-weight: bold;
+            }
+
+            frame {
+                background-color: #011722;
+                border-radius: 8px;
+                border: none;
+                box-shadow: 0 3px 4px rgba(0,0,0,0.2);
+            }
+
+            frame box {
+                background-color: #011722;
+            }
+
+            scrolledwindow {
+                background-color: #01172E;
+            }
+
+            flowbox {
+                background-color: #01172E;
+            }
+
+            /* VM Connection window */
+            .vm-window {
+                background-color: #01172E;
+            }
+
+            .vm-window box {
+                background-color: #01172E;
+            }
+
+            .vm-window webview {
+                background-color: #FFFCE9;
+            }
+
+            /* Action buttons */
+            .connect-button {
+                background-color: #45BD80;
+                color: #FFFCE9;
+                font-weight: bold;
+            }
+
+            .connect-button:hover {
+                background-color: #3aa971;
+            }
+
+            .logout-button {
+                background-color: #e74c3c;
+                color: #FFFCE9;
+            }
+
+            .logout-button:hover {
+                background-color: #c0392b;
+            }
+
+            /* Dialog styling */
+            dialog {
+                background-color: #01172E;
+                border: 1px solid #0F76A9;
+                border-radius: 8px;
+            }
+
+            dialog box {
+                background-color: #01172E;
+            }
+
+            dialog label {
+                color: #FFFCE9;
+            }
+
+            /* Spinner styling */
+            spinner {
+                color: #45BD80;
             }
         ");
         StyleContext.AddProviderForScreen(Screen, cssProvider, 800);
@@ -240,4 +369,3 @@ public class MainWindow : Window
         refreshToken = "debug_refresh_token";
     }
 }
-
