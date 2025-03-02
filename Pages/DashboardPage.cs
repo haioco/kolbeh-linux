@@ -59,83 +59,147 @@ public class DashboardPage : BasePage
     private Widget CreateVMCard(JObject vmData)
     {
         var frame = new Frame();
-        var box = new Box(Orientation.Vertical, 5);
-        box.MarginStart = box.MarginEnd = box.MarginTop = box.MarginBottom = 30;
+        frame.StyleContext.AddClass("vm-card");
+        
+        var box = new Box(Orientation.Vertical, 10);
+        box.MarginStart = box.MarginEnd = box.MarginTop = box.MarginBottom = 20;
 
-        // Title with Status
-        var titleBox = new Box(Orientation.Horizontal, 5);
-        var titleLabel = new Label(vmData["title"].ToString());
-        titleLabel.Halign = Align.Center;
-
-        var statusCircle = new DrawingArea();
-        statusCircle.SetSizeRequest(10, 10);
-        statusCircle.Drawn += (o, args) =>
+        // Status indicator with animation
+        var statusBox = new Box(Orientation.Horizontal, 5);
+        statusBox.Halign = Align.End;
+        
+        var statusDot = new DrawingArea();
+        statusDot.SetSizeRequest(12, 12);
+        
+        bool isOnline = vmData["vm_status_title"].ToString() == "آنلاین";
+        if (isOnline)
         {
-            var cr = args.Cr;
-            cr.Arc(5, 5, 5, 0, 2 * Math.PI);
-            cr.SetSourceRGB(vmData["vm_status_title"].ToString() == "آنلاین" ? 0.18 : 0.91, vmData["vm_status_title"].ToString() == "آنلاین" ? 0.80 : 0.29, 0.29);
-            cr.Fill();
-        };
+            // Create opacity as class-level field for this instance
+            double dotOpacity = 1.0;
+            bool increasing = false;
+            
+            uint timeoutId = GLib.Timeout.Add(50, () => {
+                dotOpacity += increasing ? 0.05 : -0.05;
+                if (dotOpacity >= 1.0) {
+                    dotOpacity = 1.0;
+                    increasing = false;
+                } else if (dotOpacity <= 0.3) {
+                    dotOpacity = 0.3;
+                    increasing = true;
+                }
+                statusDot.QueueDraw();
+                return true;
+            });
+
+            statusDot.Destroyed += (s, e) => {
+                if (timeoutId != 0) {
+                    GLib.Source.Remove(timeoutId);
+                }
+            };
+
+            // Use the local dotOpacity variable in the Drawn handler
+            statusDot.Drawn += (o, args) => {
+                var cr = args.Cr;
+                cr.SetSourceRGBA(0.27, 0.74, 0.50, dotOpacity); // Green with animation
+                cr.Arc(6, 6, 5, 0, 2 * Math.PI);
+                cr.Fill();
+            };
+        }
+        else
+        {
+            statusDot.Drawn += (o, args) => {
+                var cr = args.Cr;
+                cr.SetSourceRGB(0.91, 0.29, 0.29); // Red
+                cr.Arc(6, 6, 5, 0, 2 * Math.PI);
+                cr.Fill();
+            };
+        }
+
+        var statusLabel = new Label(isOnline ? "Online" : "Offline");
+        statusLabel.StyleContext.AddClass(isOnline ? "status-online" : "status-offline");
+        
+        statusBox.PackStart(statusLabel, false, false, 0);
+        statusBox.PackStart(statusDot, false, false, 0);
+
+        // VM Title with icon
+        var titleBox = new Box(Orientation.Horizontal, 10);
+        titleBox.Halign = Align.Start;
+
+        var titleLabel = new Label(vmData["title"].ToString());
+        titleLabel.StyleContext.AddClass("vm-title");
+        titleLabel.Halign = Align.Start;
 
         titleBox.PackStart(titleLabel, true, true, 0);
-        titleBox.PackStart(statusCircle, false, false, 0);
+        titleBox.PackStart(statusBox, false, false, 0);
 
-        // Load and display the OS icon from base64
-        Image osIcon;
-        try 
-        {
-            var base64Icon = vmData["image"]?["image_logo"]?["attachment_content"]?.ToString();
-            if (!string.IsNullOrEmpty(base64Icon))
-            {
-                // Decode base64 to byte array
-                byte[] iconBytes = Convert.FromBase64String(base64Icon);
-                
-                // Create a MemoryStream from the byte array
-                using (var stream = new MemoryStream(iconBytes))
-                {
-                    // Create Pixbuf from the stream and scale it
-                    var pixbuf = new Gdk.Pixbuf(stream);
-                    var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear);
-                    osIcon = new Image(scaledPixbuf);
-                }
-            }
-            else
-            {
-                // Fallback to default Windows icon if no base64 image
-                var pixbuf = new Gdk.Pixbuf("assets/Windows.png");
-                var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear);
-                osIcon = new Image(scaledPixbuf);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Out.WriteLine($"Error loading icon: {ex.Message}");
-            // Fallback to default Windows icon on error
-            var pixbuf = new Gdk.Pixbuf("assets/Windows.png");
-            var scaledPixbuf = pixbuf.ScaleSimple(64, 64, Gdk.InterpType.Bilinear);
-            osIcon = new Image(scaledPixbuf);
-        }
-
-        // Specs
-        var specsBox = new Box(Orientation.Vertical, 2);
-        specsBox.Halign = Align.Center;
-        specsBox.PackStart(new Label($"CPU: {vmData["vm_cpu"]} cores"), false, false, 0);
-        specsBox.PackStart(new Label($"RAM: {vmData["vm_ram"]} GB"), false, false, 0);
-        specsBox.PackStart(new Label($"Storage: {vmData["vm_storage"]} GB"), false, false, 0);
-        specsBox.PackStart(new Label($"OS: {vmData["image"]["title"]}"), false, false, 0);
-        specsBox.PackStart(new Label($"Location: {vmData["country"]["country_name"]}"), false, false, 0);
-        // Add Connect button
-        var connectButton = new Button("Connect");
-        connectButton.Sensitive = vmData["vm_status_title"].ToString() == "آنلاین";
-        connectButton.Clicked += async (sender, e) =>
-        {
-            await ConnectToVM(vmData["id"].ToString(), vmData["title"].ToString().Trim(), vmData["vm_sequence_id"].ToString());
+        // Specs with icons
+        var specsBox = new Box(Orientation.Vertical, 5);
+        specsBox.StyleContext.AddClass("specs-box");
+        
+        var specs = new[] {
+            ("CPU", $"{vmData["vm_cpu"]} cores", "cpu"),
+            ("RAM", $"{vmData["vm_ram"]} GB", "memory"),
+            ("Storage", $"{vmData["vm_storage"]} GB", "drive"),
+            ("OS", vmData["image"]["title"].ToString(), "computer"),
+            ("Location", vmData["country"]["country_name"].ToString(), "network")
         };
 
+        foreach (var (label, value, icon) in specs)
+        {
+            var specBox = new Box(Orientation.Horizontal, 5);
+            var iconLabel = new Label($"<span color='#45BD80'>\u2022</span>");
+            iconLabel.UseMarkup = true;
+            
+            var specLabel = new Label($"{label}: {value}");
+            specLabel.StyleContext.AddClass("spec-text");
+            specLabel.Halign = Align.Start;
+            
+            specBox.PackStart(iconLabel, false, false, 0);
+            specBox.PackStart(specLabel, true, true, 0);
+            specsBox.PackStart(specBox, false, false, 0);
+        }
+
+        // Connect button with loading state
+        var connectButton = new Button();
+        connectButton.StyleContext.AddClass("connect-button");
+        
+        var buttonBox = new Box(Orientation.Horizontal, 5);
+        var buttonLabel = new Label("Connect");
+        var spinner = new Spinner();
+        
+        buttonBox.PackStart(buttonLabel, true, true, 0);
+        buttonBox.PackStart(spinner, false, false, 0);
+        connectButton.Add(buttonBox);
+
+        connectButton.Sensitive = isOnline;
+        if (!isOnline) {
+            connectButton.TooltipText = "VM is currently offline";
+        }
+
+        connectButton.Clicked += async (sender, e) => {
+            buttonLabel.Visible = false;
+            spinner.Start();
+            spinner.Visible = true;
+            connectButton.Sensitive = false;
+
+            try
+            {
+                await ConnectToVM(vmData["id"].ToString(), vmData["title"].ToString().Trim(), vmData["vm_sequence_id"].ToString());
+            }
+            finally
+            {
+                buttonLabel.Visible = true;
+                spinner.Stop();
+                spinner.Visible = false;
+                connectButton.Sensitive = true;
+            }
+        };
+
+        // Assembly
         box.PackStart(titleBox, false, false, 0);
-        box.PackStart(osIcon, false, false, 0); // Add OS icon below the title
+        box.PackStart(new Separator(Orientation.Horizontal), false, false, 5);
         box.PackStart(specsBox, false, false, 0);
-        box.PackStart(connectButton, false, false, 5);  // Add some padding
+        box.PackStart(connectButton, false, false, 10);
 
         frame.Add(box);
         frame.ShowAll();
@@ -186,7 +250,6 @@ public class DashboardPage : BasePage
 
     private async Task FetchVirtualMachines()
     {
-        Console.Out.WriteLine($"USING ACCESS TOKEN TO FETCH VMs");
         spinner.Start();
         ClearVMList();
 
@@ -216,15 +279,19 @@ public class DashboardPage : BasePage
                         }
                         else
                         {
-                            ShowNoVMsMessage();
+                            ShowMessage("No virtual machines found", "info");
                         }
                     }
+                }
+                else
+                {
+                    ShowMessage("Failed to fetch VMs. Please try again.", "error");
                 }
             }
         }
         catch (Exception ex)
         {
-            ShowErrorMessage($"Error: {ex.Message}");
+            ShowMessage($"Error: {ex.Message}", "error");
         }
         finally
         {
@@ -242,18 +309,30 @@ public class DashboardPage : BasePage
         }
     }
 
-    private void ShowNoVMsMessage()
+    private void ShowMessage(string message, string type)
     {
-        var messageLabel = new Label("No virtual machines found");
-        messageLabel.StyleContext.AddClass("no-vms-message");
-        vmFlowBox.Add(messageLabel);
-    }
+        var messageBox = new Box(Orientation.Vertical, 5);
+        messageBox.Halign = Align.Center;
+        messageBox.Valign = Align.Center;
 
-    private void ShowErrorMessage(string message)
-    {
-        var errorLabel = new Label(message);
-        errorLabel.StyleContext.AddClass("error-message");
-        vmFlowBox.Add(errorLabel);
+        var icon = new Image();
+        switch (type)
+        {
+            case "error":
+                icon = new Image(Stock.DialogError, IconSize.Dialog);
+                break;
+            case "info":
+                icon = new Image(Stock.DialogInfo, IconSize.Dialog);
+                break;
+        }
+
+        var label = new Label(message);
+        label.StyleContext.AddClass($"message-{type}");
+        
+        messageBox.PackStart(icon, false, false, 10);
+        messageBox.PackStart(label, false, false, 5);
+        
+        vmFlowBox.Add(messageBox);
     }
 
     public override void Show()

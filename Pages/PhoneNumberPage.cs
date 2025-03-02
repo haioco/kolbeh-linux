@@ -1,5 +1,6 @@
 using Gtk;
 using System;
+using System.Linq; // Add this for the All() method
 
 public class PhoneNumberPage : BasePage
 {
@@ -26,6 +27,7 @@ public class PhoneNumberPage : BasePage
         // Phone input
         phoneEntry = new Entry { PlaceholderText = "Phone Number", MaxLength = 11 };
         phoneEntry.WidthRequest = 200;
+        phoneEntry.KeyPressEvent += PhoneEntry_KeyPressEvent;
         centerBox.PackStart(phoneEntry, false, false, 0);
 
         // Continue button
@@ -54,12 +56,27 @@ public class PhoneNumberPage : BasePage
         PackStart(centerBox, true, true, 0);
     }
 
+    private void PhoneEntry_KeyPressEvent(object o, KeyPressEventArgs args)
+    {
+        // Only allow numbers and control keys (backspace, delete, etc.)
+        bool isNumber = char.IsDigit((char)args.Event.KeyValue);
+        bool isControl = args.Event.KeyValue == (uint)Gdk.Key.BackSpace 
+                        || args.Event.KeyValue == (uint)Gdk.Key.Delete
+                        || args.Event.KeyValue == (uint)Gdk.Key.Left
+                        || args.Event.KeyValue == (uint)Gdk.Key.Right;
+
+        if (!isNumber && !isControl)
+        {
+            args.RetVal = true; // Block the key press
+        }
+    }
+
     private async void ContinueButton_Clicked(object sender, EventArgs e)
     {
         string phone = phoneEntry.Text.Trim();
-        if (string.IsNullOrEmpty(phone))
+        if (string.IsNullOrEmpty(phone) || !phone.All(char.IsDigit) || phone.Length != 11)
         {
-            statusLabel.Markup = "<span foreground='red'>Please enter your phone number</span>";
+            statusLabel.Markup = "<span foreground='red'>Please enter a valid 11-digit phone number</span>";
             return;
         }
 

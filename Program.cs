@@ -6,36 +6,40 @@ namespace GuacamoleLinuxApp
 {
     class Program
     {
+        private static Application app;
+
         [STAThread]
         public static void Main(string[] args)
         {
-
             Application.Init();
 
-            var app = new Application("org.GuacamoleLinuxApp.GuacamoleLinuxApp", GLib.ApplicationFlags.None);
+            app = new Application("org.GuacamoleLinuxApp.GuacamoleLinuxApp", GLib.ApplicationFlags.None);
             app.Register(GLib.Cancellable.Current);
+
+            // Handle application shutdown
+            app.Shutdown += (sender, e) => {
+                Application.Quit();
+                Environment.Exit(0);
+            };
 
             if (MainWindow.DEBUG) {
                 var win = new MainWindow();
                 app.AddWindow(win);
-                win.Show();                
+                win.Show();
             } else {
-            // Show splash screen
-            var splashScreen = new SplashScreen();
-            splashScreen.ShowAll();
+                var splashScreen = new SplashScreen();
+                splashScreen.ShowAll();
 
-            // Delay for splash screen
-            Task.Delay(2500).ContinueWith(t =>
-            {
-                Application.Invoke((sender, e) =>
-                {
-                    splashScreen.Hide();
-                    var win = new MainWindow();
-                    app.AddWindow(win);
-                    win.Show();
+                Task.Delay(2500).ContinueWith(t => {
+                    Application.Invoke((sender, e) => {
+                        splashScreen.Hide();
+                        var win = new MainWindow();
+                        app.AddWindow(win);
+                        win.Show();
+                    });
                 });
-            });
             }
+
             Application.Run();
         }
     }

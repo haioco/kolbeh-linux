@@ -1,5 +1,7 @@
 using Gtk;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 
 public class SplashScreen : Window
@@ -24,8 +26,24 @@ public class SplashScreen : Window
         // Load and display logo
         try 
         {
-            logoImage = new Image("kolbeh.png");
-            logoImage.SetSizeRequest(400, 400);  // Set size of the image to fill the window
+            var assembly = Assembly.GetExecutingAssembly();
+            // Update to match the LogicalName in the csproj file
+            using Stream stream = assembly.GetManifestResourceStream("GuacamoleLinuxApp.Resources.kolbeh.png");
+            if (stream != null)
+            {
+                var pixbuf = new Gdk.Pixbuf(stream);
+                logoImage = new Image(pixbuf);
+                logoImage.SetSizeRequest(400, 400);
+            }
+            else
+            {
+                Console.WriteLine("Resource not found. Available resources:");
+                foreach (var resourceName in assembly.GetManifestResourceNames())
+                {
+                    Console.WriteLine($"- {resourceName}");
+                }
+                throw new FileNotFoundException("Embedded resource kolbeh.png not found. Check namespace and build settings.");
+            }
         }
         catch (Exception ex)
         {
@@ -78,4 +96,4 @@ public class SplashScreen : Window
         await Task.Delay(500);  // Final delay before closing
         Hide();
     }
-} 
+}

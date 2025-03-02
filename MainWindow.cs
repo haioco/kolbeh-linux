@@ -24,6 +24,9 @@ public class MainWindow : Window
 
     public MainWindow() : base("Kolbeh VDI Solution")
     {
+        // Add this line near the beginning of the constructor
+        DeleteEvent += Window_DeleteEvent;
+
         SetDefaultSize(700, 550);
         SetPosition(WindowPosition.Center);
 
@@ -85,7 +88,6 @@ public class MainWindow : Window
                 border-radius: 4px;
                 padding: 8px 16px;
                 min-height: 36px;
-                transition: background-color 200ms ease;
             }
 
             button:hover {
@@ -141,7 +143,6 @@ public class MainWindow : Window
                 background-color: #011732;
                 border-radius: 8px;
                 border: none;
-                box-shadow: 0 3px 4px rgba(0,0,0,0.2);
             }
 
             frame box {
@@ -208,8 +209,89 @@ public class MainWindow : Window
             spinner {
                 color: #45BD80;
             }
+
+            /* Enhanced VM Cards */
+            .vm-card {
+                background-color: #011E3C;
+                border-radius: 16px;
+                border: 1px solid rgba(15, 118, 169, 0.3);
+                margin: 12px;
+                padding: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+                transition: all 200ms ease;
+            }
+
+            .vm-card:hover {
+                border-color: #0F76A9;
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            }
+
+            .specs-box {
+                background-color: rgba(15, 118, 169, 0.1);
+                border-radius: 12px;
+                padding: 15px;
+                margin: 8px 0;
+            }
+
+            frame box {
+                background-color: transparent;
+            }
+
+            .vm-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #FFFCE9;
+            }
+
+            .spec-text {
+                color: #FFFCE9;
+                font-size: 14px;
+            }
+
+            .status-online {
+                color: #45BD80;
+                font-size: 12px;
+            }
+
+            .status-offline {
+                color: #e74c3c;
+                font-size: 12px;
+            }
+
+            .connect-button {
+                background-color: #45BD80;
+                color: #FFFCE9;
+                font-weight: bold;
+                min-height: 40px;
+                border-radius: 20px;
+            }
+
+            .connect-button:hover {
+                background-color: #3aa971;
+            }
+
+            .connect-button:disabled {
+                background-color: #666666;
+            }
+
+            .message-error {
+                color: #e74c3c;
+                font-size: 16px;
+            }
+
+            .message-info {
+                color: #FFFCE9;
+                font-size: 16px;
+                font-style: italic;
+            }
         ");
         StyleContext.AddProviderForScreen(Screen, cssProvider, 800);
+    }
+
+    private void Window_DeleteEvent(object sender, DeleteEventArgs args)
+    {
+        Application.Quit();
+        args.RetVal = true;
     }
 
     public (bool CanRequest, TimeSpan RemainingTime) CheckPhoneCooldown(string phone)
@@ -239,6 +321,7 @@ public class MainWindow : Window
 
     public async Task<bool> RequestOtp(string phone)
     {
+        Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Requesting OTP for phone number: {phone}");
         try
         {
             using (HttpClient client = new HttpClient())
@@ -248,17 +331,22 @@ public class MainWindow : Window
                     new KeyValuePair<string, string>("mobile", phone)
                 });
 
+                Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Sending OTP request to API...");
                 HttpResponseMessage response = await client.PostAsync("https://api.haio.ir/v1/user/otp/login", content);
 
+                Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] API Response Status: {response.StatusCode}");
                 if (response.IsSuccessStatusCode)
                 {
+                    Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] OTP request successful");
                     return true;
                 }
+                Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] OTP request failed");
                 return false;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error requesting OTP: {ex.Message}");
             return false;
         }
     }

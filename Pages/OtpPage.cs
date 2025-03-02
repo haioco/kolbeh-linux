@@ -48,7 +48,7 @@ public class OtpPage : BasePage
         inputBox.PackStart(backButton, false, false, 0);
 
         // OTP input
-        otpEntry = new Entry { PlaceholderText = "Enter 4-digit OTP", MaxLength = 4 };
+        otpEntry = new Entry { PlaceholderText = "Enter 6-digit OTP", MaxLength = 6 };
         otpEntry.WidthRequest = 200;
         inputBox.PackStart(otpEntry, false, false, 0);
 
@@ -169,9 +169,9 @@ public class OtpPage : BasePage
     {
         string otp = otpEntry.Text.Trim();
         Console.Out.WriteLine($"VERIFICATION PROCESS INITIALIZED:\nPhone_number:{phoneNumber}\nOTP:{otp}");
-        if (string.IsNullOrEmpty(otp) || otp.Length != 4)
+        if (string.IsNullOrEmpty(otp) || otp.Length != 6)
         {
-            statusLabel.Markup = "<span foreground='red'>Please enter a valid 4-digit OTP</span>";
+            statusLabel.Markup = "<span foreground='red'>Please enter a valid 6-digit OTP</span>";
             return;
         }
 
@@ -222,4 +222,4 @@ public class OtpPage : BasePage
         StopCooldownTimer();
         this.Visible = false;
     }
-} 
+}
