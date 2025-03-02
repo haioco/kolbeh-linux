@@ -15,8 +15,8 @@ public class MainWindow : Window
     // Store authentication tokens
     private string accessToken;
     private string refreshToken;
-    public static bool DEBUG = false; // Debug flag
-    // public static bool DEBUG = true; // Debug flag
+    // public static bool DEBUG = false; // Debug flag
+    public static bool DEBUG = true; // Debug flag
 
     // Phone number cooldown tracking
     private Dictionary<string, DateTime> phoneCooldowns = new Dictionary<string, DateTime>();

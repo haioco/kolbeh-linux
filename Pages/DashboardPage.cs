@@ -388,7 +388,9 @@ public class DashboardPage : BasePage
         var balanceBox = new Box(Orientation.Vertical, 5);
         balanceBox.Halign = Align.Center;
         var balanceLabel = new Label("Balance: Loading...");
+        balanceLabel.StyleContext.AddClass("balance-text");
         var pointBalanceLabel = new Label("Points: Loading...");
+        pointBalanceLabel.StyleContext.AddClass("balance-text");
         balanceBox.PackStart(balanceLabel, false, false, 0);
         balanceBox.PackStart(pointBalanceLabel, false, false, 0);
 
@@ -435,8 +437,10 @@ public class DashboardPage : BasePage
                         Application.Invoke((sender, args) =>
                         {
                             nameLabel.Text = $"{userInfo["first_name"]} {userInfo["last_name"]}";
-                            balanceLabel.Text = $"Balance: {userInfo["balance"]}";
-                            pointBalanceLabel.Text = $"Points: {userInfo["point_balance"]}";
+                            var balance = long.Parse(userInfo["balance"].ToString());
+                            var points = long.Parse(userInfo["point_balance"].ToString());
+                            balanceLabel.Text = $"Balance: {balance:N0}";
+                            pointBalanceLabel.Text = $"Points: {points:N0}";
                         });
                     }
                 }
